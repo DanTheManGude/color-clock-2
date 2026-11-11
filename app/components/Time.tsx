@@ -38,15 +38,22 @@ export default function Time() {
 
   const currentDate = new Date(timestamp);
 
+  // Calculate days elapsed in the current year (0 on Jan 1, 1 on Jan 2, etc.)
+  const startOfYear = new Date(currentDate.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor(
+    (currentDate.getTime() - startOfYear.getTime()) / 86400000,
+  );
+
   const secondsSinceMidnight =
     currentDate.getHours() * 3600 +
     currentDate.getMinutes() * 60 +
     currentDate.getSeconds() +
     currentDate.getMilliseconds() / 1000;
 
-  // Hue cycles 0° -> 360° every hour (3600 seconds)
+  // Hue cycles 0° -> 360° every hour, offset by 60° for each day of the year
   const secondsInCurrentHour = secondsSinceMidnight % 3600;
-  const hue = (secondsInCurrentHour / 3600) * 360;
+  const baseHue = (secondsInCurrentHour / 3600) * 360;
+  const hue = (baseHue + dayOfYear * 60) % 360;
 
   // Brightness (HSL Lightness) scales from 20% at midnight (0s & 86400s) to 80% at noon (43200s)
   const distanceFromMidnight = 43200 - Math.abs(43200 - secondsSinceMidnight);
@@ -68,7 +75,9 @@ export default function Time() {
       <div className="text-xl opacity-90">
         Seconds today: {secondsSinceMidnight.toFixed(1)}s
       </div>
-      <div className="text-sm opacity-75 mt-2">{backgroundColor}</div>
+      <div className="text-sm opacity-75 mt-2">
+        Day {dayOfYear + 1} • {backgroundColor}
+      </div>
     </main>
   );
 }
