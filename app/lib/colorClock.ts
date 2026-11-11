@@ -36,6 +36,12 @@ export interface HueOffsetTick {
   isBrightUnderneath: boolean;
 }
 
+export interface RgbColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
 export class ColorClock {
   /**
    * Computes a DST-safe day of the year index (0 on Jan 1, 1 on Jan 2, etc.).
@@ -323,6 +329,53 @@ export class ColorClock {
   }
 
   /**
+   * Converts HSL values (h in [0,360), s & l in) to standard 0-255 RGB integers.
+   */
+  static hslToRgb(h: number, s: number, l: number): RgbColor {
+    const sat = s / 100;
+    const light = l / 100;
+    const c = (1 - Math.abs(2 * light - 1)) * sat;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = light - c / 2;
+
+    let r1 = 0;
+    let g1 = 0;
+    let b1 = 0;
+
+    if (h < 60) {
+      [r1, g1, b1] = [c, x, 0];
+    } else if (h < 120) {
+      [r1, g1, b1] = [x, c, 0];
+    } else if (h < 180) {
+      [r1, g1, b1] = [0, c, x];
+    } else if (h < 240) {
+      [r1, g1, b1] = [0, x, c];
+    } else if (h < 300) {
+      [r1, g1, b1] = [x, 0, c];
+    } else {
+      [r1, g1, b1] = [c, 0, x];
+    }
+
+    return {
+      r: Math.round((r1 + m) * 255),
+      g: Math.round((g1 + m) * 255),
+      b: Math.round((b1 + m) * 255),
+    };
+  }
+
+  /**
+   * Converts an RgbColor object (0-255 channels) into an uppercase #RRGGBB hex string.
+   */
+  static rgbToHex({ r, g, b }: RgbColor): string {
+    const toHex = (value: number) =>
+      Math.max(0, Math.min(255, Math.round(value)))
+        .toString(16)
+        .padStart(2, "0");
+
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+  }
+
+  /**
    * Computes all derived visual and numeric values for a given Date.
    */
   static getClockState(date: Date) {
@@ -343,6 +396,9 @@ export class ColorClock {
     const lightness = this.getLightnessAtSecond(secondsSinceMidnight);
     const isBright = lightness > CLOCK_CONFIG.CONTRAST_THRESHOLD_PERCENT;
 
+    const rgb = this.hslToRgb(hue, saturation, lightness);
+    const hex = this.rgbToHex(rgb);
+
     return {
       dayOfYear,
       secondsSinceMidnight,
@@ -351,6 +407,8 @@ export class ColorClock {
       hue,
       saturation,
       lightness,
+      rgb,
+      hex,
       isBright,
       backgroundColor: `hsl(${hue.toFixed(2)}, ${saturation.toFixed(2)}%, ${lightness.toFixed(2)}%)`,
       hueWheelGradient: this.getHueWheelGradient(

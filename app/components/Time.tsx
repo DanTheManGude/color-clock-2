@@ -174,10 +174,18 @@ export default function Time() {
       </div>
 
       {/* Primary Hue / Seasonal Saturation / Lightness Summary */}
-      <div className={`text-xl opacity-90 ${isDebugActive ? "mb-2" : "mb-8"}`}>
+      <div className="text-xl opacity-90 mb-1">
         Hue {clockState.hue.toFixed(1)}° • Sat{" "}
         {clockState.saturation.toFixed(1)}% • Lightness{" "}
         {clockState.lightness.toFixed(1)}%
+      </div>
+
+      {/* Live RGB Readout */}
+      <div
+        className={`text-base opacity-85 ${isDebugActive ? "mb-2" : "mb-8"}`}
+      >
+        RGB({clockState.rgb.r}, {clockState.rgb.g}, {clockState.rgb.b}) •{" "}
+        {clockState.hex}
       </div>
 
       {/* Debug-Only Seconds Today Readout */}
