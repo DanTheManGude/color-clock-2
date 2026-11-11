@@ -1,5 +1,4 @@
 import { HourTick, HueOffsetTick } from "../lib/colorClock";
-
 interface ColorClockDialProps {
   hueWheelGradient: string;
   brightnessRingGradient: string;
@@ -8,7 +7,7 @@ interface ColorClockDialProps {
   hourAngle: number;
   minuteAngle: number;
   hue: number;
-  lightness: number;
+  value: number;
   isBright: boolean;
 }
 
@@ -20,14 +19,13 @@ export default function ColorClockDial({
   hourAngle,
   minuteAngle,
   hue,
-  lightness,
+  value,
   isBright,
 }: ColorClockDialProps) {
   const handColorClass = isBright ? "bg-slate-900" : "bg-white";
   const ringOutlineColor = isBright
     ? "rgba(15, 23, 42, 0.25)"
     : "rgba(255, 255, 255, 0.35)";
-
   return (
     <div
       style={{
@@ -35,7 +33,7 @@ export default function ColorClockDial({
         boxShadow: `0 0 0 3px ${ringOutlineColor}, 0 25px 50px -12px rgba(0, 0, 0, 0.25)`,
       }}
       className="relative w-64 h-64 rounded-full p-4 overflow-hidden mb-8 flex items-center justify-center"
-      aria-label={`Color and 12-hour brightness clock showing ${Math.round(hue)} degrees hue and ${Math.round(lightness)}% brightness`}
+      aria-label={`Color and 12-hour value clock showing ${Math.round(hue)} degrees hue and ${Math.round(value)}% value`}
     >
       {/* 12-Hour Bezel Tick Marks */}
       {hourTicks.map(({ angle, isCardinal, isBrightUnderneath }) => {
@@ -57,8 +55,7 @@ export default function ColorClockDial({
           </div>
         );
       })}
-
-      {/* Inner Hue Color Wheel */}
+      {/* Inner HSV Hue Wheel */}
       <div
         style={{
           background: hueWheelGradient,
@@ -84,7 +81,6 @@ export default function ColorClockDial({
             </div>
           );
         })}
-
         {/* Hour Hand (Short & Thick) */}
         <div
           style={{ transform: `rotate(${hourAngle}deg)` }}

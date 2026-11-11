@@ -41,7 +41,7 @@ export default function Time() {
   // Keep screen awake while clock is open
   useWakeLock(true);
 
-  // Sync browser tab title, theme-color, and dynamic SVG favicon with live color
+  // Sync browser tab title, theme-color, and dynamic SVG favicon with live HSV color
   useEffect(() => {
     if (timestamp === 0) return;
 
@@ -157,7 +157,7 @@ export default function Time() {
         hourAngle={clockState.hourAngle}
         minuteAngle={clockState.minuteAngle}
         hue={clockState.hue}
-        lightness={clockState.lightness}
+        value={clockState.value}
         isBright={clockState.isBright}
       />
 
@@ -173,18 +173,17 @@ export default function Time() {
         {activeDate.toLocaleTimeString()}
       </div>
 
-      {/* Primary Hue / Seasonal Saturation / Lightness Summary */}
+      {/* Primary Hue / Seasonal Saturation / Value Summary */}
       <div className="text-xl opacity-90 mb-1">
         Hue {clockState.hue.toFixed(1)}° • Sat{" "}
-        {clockState.saturation.toFixed(1)}% • Lightness{" "}
-        {clockState.lightness.toFixed(1)}%
+        {clockState.saturation.toFixed(1)}% • Value{" "}
+        {clockState.value.toFixed(1)}%
       </div>
 
-      {/* Live RGB Readout */}
+      {/* Live RGB Hex Readout */}
       <div
-        className={`text-base opacity-85 ${isDebugActive ? "mb-2" : "mb-8"}`}
+        className={`text-base opacity-85 tracking-wider ${isDebugActive ? "mb-2" : "mb-8"}`}
       >
-        RGB({clockState.rgb.r}, {clockState.rgb.g}, {clockState.rgb.b}) •{" "}
         {clockState.hex}
       </div>
 
