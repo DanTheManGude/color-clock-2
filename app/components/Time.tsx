@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { CLOCK_CONFIG, ColorClock } from "../lib/colorClock";
+import { useWakeLock } from "../hooks/useWakeLock";
 import ColorClockDial from "./ColorClockDial";
 import WeekHueStrip from "./WeekHueStrip";
 import TimeDebugControls from "./TimeDebugControls";
@@ -37,6 +38,9 @@ export default function Time() {
   const [offsetMs, setOffsetMs] = useState(0);
   const [saturation, setSaturation] = useState(CLOCK_CONFIG.SATURATION_PERCENT);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
+
+  // Keep the screen awake while the clock is open
+  const isWakeLockActive = useWakeLock(true);
 
   // Sync browser tab title, theme-color, and dynamic SVG favicon with live color
   useEffect(() => {
