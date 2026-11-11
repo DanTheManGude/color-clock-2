@@ -42,9 +42,7 @@ export default function ColorClockDial({
       <div
         style={{ transform: `rotate(${hourAngle + 180}deg)` }}
         className="absolute inset-0 flex justify-center pointer-events-none transition-transform duration-300 ease-linear"
-      >
-        <div className={`w-0.5 h-4 ${seamMarkerClass}`} />
-      </div>
+      />
 
       {/* 12-Hour Bezel Tick Marks */}
       {hourTicks.map(({ angle, isCardinal, isBrightUnderneath }) => {
