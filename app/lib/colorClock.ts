@@ -8,7 +8,7 @@ export const CLOCK_CONFIG = {
   SUMMER_SOLSTICE_DAY_OF_YEAR: 171, // June 21 (0-indexed)
   MIN_VALUE_PERCENT: 20,
   MAX_VALUE_PERCENT: 80,
-  WEEK_SWATCH_VALUE_PERCENT: 75,
+  WEEK_SWATCH_VALUE_PERCENT: 65,
   LUMINANCE_CONTRAST_THRESHOLD: 0.179,
   SECONDS_PER_MINUTE: 60,
   SECONDS_PER_HOUR: 3600,
@@ -334,19 +334,20 @@ export class ColorClock {
   }
 
   /**
-   * Generates the 7-day swatch list for the current week (Sun -> Sat) using HSV.
+   * Generates the 7-day swatch list for the current week (Sun -> Sat) using the active HSV Value.
    */
-  static getWeekSwatches(date: Date): WeekDaySwatch[] {
+  static getWeekSwatches(date: Date, value: number): WeekDaySwatch[] {
     const currentDayOfWeek = date.getDay();
+    const resolvedValue = (CLOCK_CONFIG.WEEK_SWATCH_VALUE_PERCENT + value) / 2;
 
     return CLOCK_CONFIG.DAY_LABELS.map((label, index) => {
       const dateForDay = new Date(
         date.getFullYear(),
         date.getMonth(),
         date.getDate() + (index - currentDayOfWeek),
-        12,
-        0,
-        0,
+        date.getHours(),
+        date.getMinutes(),
+        date.getSeconds(),
       );
       const targetDayOfYear = this.getDayOfYear(dateForDay);
       const startingHue = this.getDailyStartingHue(targetDayOfYear);
@@ -359,12 +360,13 @@ export class ColorClock {
         backgroundColor: this.hsvToCssRgb(
           startingHue,
           saturation,
-          CLOCK_CONFIG.WEEK_SWATCH_VALUE_PERCENT,
+          resolvedValue,
         ),
         isToday: index === currentDayOfWeek,
       };
     });
   }
+
   /**
 • Computes all derived HSV visual and numeric values for a given Date.
 */
@@ -405,7 +407,7 @@ export class ColorClock {
       ),
       hourTicks: this.getHourTicks(secondsSinceMidnight, hourAngle),
       hueOffsetTicks: this.getHueOffsetTicks(dayOffset, value, saturation),
-      weekDays: this.getWeekSwatches(date),
+      weekDays: this.getWeekSwatches(date, value),
     };
   }
 }
