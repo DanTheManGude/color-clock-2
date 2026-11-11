@@ -1,15 +1,16 @@
-import { CLOCK_CONFIG } from "../lib/colorClock";
+import { CLOCK_CONFIG, ColorClock } from "../lib/colorClock";
 
 interface TimeDebugControlsProps {
   isOpen: boolean;
   onToggleOpen: () => void;
   activeDate: Date;
+  dayOfYear: number;
   secondsSinceMidnight: number;
-  saturation: number;
   isSimulated: boolean;
   isBright: boolean;
   onScrubSeconds: (targetSeconds: number) => void;
-  onChangeSaturation: (newSaturation: number) => void;
+  onScrubDayOfYear: (targetDayOfYear: number) => void;
+  onJumpToMonthDay: (monthIndex: number, dayOfMonth: number) => void;
   onShiftHours: (deltaHours: number) => void;
   onShiftDays: (deltaDays: number) => void;
   onReset: () => void;
@@ -20,20 +21,28 @@ const TIME_PRESETS = [
   { label: "Noon", seconds: 12 * CLOCK_CONFIG.SECONDS_PER_HOUR },
 ] as const;
 
+const SEASON_PRESETS = [
+  { label: "Summer Solstice", month: 5, day: 21 },
+  { label: "Winter Solstice", month: 11, day: 21 },
+] as const;
+
 export default function TimeDebugControls({
   isOpen,
   onToggleOpen,
   activeDate,
+  dayOfYear,
   secondsSinceMidnight,
-  saturation,
   isSimulated,
   isBright,
   onScrubSeconds,
-  onChangeSaturation,
+  onScrubDayOfYear,
+  onJumpToMonthDay,
   onShiftHours,
   onShiftDays,
   onReset,
 }: TimeDebugControlsProps) {
+  const daysInYear = ColorClock.getDaysInYear(activeDate.getFullYear());
+
   const panelBgClass = isBright
     ? "bg-slate-900/10 border-slate-900/20"
     : "bg-white/10 border-white/20";
@@ -70,7 +79,7 @@ export default function TimeDebugControls({
           <div>
             <div className="flex justify-between text-xs font-semibold mb-1.5">
               <span>Time of Day Scrubber</span>
-              <span>{activeDate.toDateString()}</span>
+              <span>{activeDate.toLocaleTimeString()}</span>
             </div>
             <input
               type="range"
@@ -84,25 +93,27 @@ export default function TimeDebugControls({
             />
           </div>
 
-          {/* Saturation Slider */}
+          {/* 365-Day Year Scrubber Slider */}
           <div>
             <div className="flex justify-between text-xs font-semibold mb-1.5">
-              <span>Saturation</span>
-              <span>{saturation}%</span>
+              <span>Day of Year Scrubber</span>
+              <span>
+                {activeDate.toDateString()} ({dayOfYear + 1}/{daysInYear})
+              </span>
             </div>
             <input
               type="range"
               min={0}
-              max={100}
+              max={daysInYear - 1}
               step={1}
-              value={saturation}
-              onChange={(e) => onChangeSaturation(Number(e.target.value))}
+              value={dayOfYear}
+              onChange={(e) => onScrubDayOfYear(Number(e.target.value))}
               className="w-full accent-current cursor-pointer"
-              aria-label="Adjust color saturation"
+              aria-label="Scrub simulated day of the year"
             />
           </div>
 
-          {/* Quick Time-of-Day Presets & Hour/Day Stepping */}
+          {/* Quick Time-of-Day, Season Presets & Hour/Day Stepping */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-1.5">
               {TIME_PRESETS.map((preset) => (
@@ -113,6 +124,16 @@ export default function TimeDebugControls({
                   className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
                 >
                   {preset.label}
+                </button>
+              ))}
+              {SEASON_PRESETS.map((season) => (
+                <button
+                  key={season.label}
+                  type="button"
+                  onClick={() => onJumpToMonthDay(season.month, season.day)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
+                >
+                  {season.label}
                 </button>
               ))}
             </div>

@@ -3,7 +3,9 @@ export const CLOCK_CONFIG = {
   DAILY_HUE_OFFSET_DEG: 40,
   HOURS_ON_DIAL: 12,
   DEGREES_PER_HOUR: 30,
-  SATURATION_PERCENT: 70,
+  MIN_SATURATION_PERCENT: 35,
+  MAX_SATURATION_PERCENT: 95,
+  SUMMER_SOLSTICE_DAY_OF_YEAR: 171, // June 21 (0-indexed)
   MIN_LIGHTNESS_PERCENT: 20,
   MAX_LIGHTNESS_PERCENT: 80,
   CONTRAST_THRESHOLD_PERCENT: 50,
@@ -19,6 +21,7 @@ export const CLOCK_CONFIG = {
 export interface WeekDaySwatch {
   label: string;
   startingHue: number;
+  saturation: number;
   isToday: boolean;
 }
 
@@ -45,6 +48,43 @@ export class ColorClock {
     );
     const utcStartOfYear = Date.UTC(date.getFullYear(), 0, 1);
     return Math.floor((utcDate - utcStartOfYear) / CLOCK_CONFIG.MS_PER_DAY);
+  }
+
+  /**
+   * Returns 366 on leap years and 365 on common years.
+   */
+  static getDaysInYear(year: number): number {
+    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
+  }
+
+  /**
+   * Computes seasonal saturation (35% on Winter Solstice -> 95% on Summer Solstice).
+   */
+  static getSeasonalSaturation(date: Date): number {
+    const {
+      MIN_SATURATION_PERCENT,
+      MAX_SATURATION_PERCENT,
+      SUMMER_SOLSTICE_DAY_OF_YEAR,
+    } = CLOCK_CONFIG;
+
+    const year = date.getFullYear();
+    const daysInYear = this.getDaysInYear(year);
+    const isLeapYear = daysInYear === 366;
+    const summerSolsticeDay =
+      SUMMER_SOLSTICE_DAY_OF_YEAR + (isLeapYear ? 1 : 0);
+
+    // Include fractional day progress so saturation shifts smoothly throughout each day
+    const fractionalDayOfYear =
+      this.getDayOfYear(date) +
+      this.getSecondsSinceMidnight(date) / CLOCK_CONFIG.SECONDS_PER_DAY;
+
+    // Cosine wave peaking at 1.0 on Summer Solstice and reaching -1.0 on Winter Solstice
+    const angleRad =
+      ((fractionalDayOfYear - summerSolsticeDay) / daysInYear) * 2 * Math.PI;
+    const normalizedSolarFactor = (Math.cos(angleRad) + 1) / 2; // 0.0 -> 1.0
+
+    const saturationRange = MAX_SATURATION_PERCENT - MIN_SATURATION_PERCENT;
+    return MIN_SATURATION_PERCENT + normalizedSolarFactor * saturationRange;
   }
 
   /**
@@ -76,6 +116,22 @@ export class ColorClock {
     );
     result.setSeconds(secondsSinceMidnight);
     return result;
+  }
+
+  /**
+   * Returns a new Date in the same year set to the given 0-indexed day of year,
+   * preserving the current hours, minutes, and seconds.
+   */
+  static createDateAtDayOfYear(baseDate: Date, targetDayOfYear: number): Date {
+    return new Date(
+      baseDate.getFullYear(),
+      0,
+      1 + targetDayOfYear,
+      baseDate.getHours(),
+      baseDate.getMinutes(),
+      baseDate.getSeconds(),
+      0,
+    );
   }
 
   /**
@@ -183,7 +239,7 @@ export class ColorClock {
   static getHueOffsetTicks(
     dayOffset: number,
     lightness: number,
-    saturation: number = CLOCK_CONFIG.SATURATION_PERCENT,
+    saturation: number,
   ): HueOffsetTick[] {
     const count = Math.floor(360 / CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG);
 
@@ -210,11 +266,11 @@ export class ColorClock {
   static getHueWheelGradient(
     dayOffset: number,
     lightness: number,
-    saturation: number = CLOCK_CONFIG.SATURATION_PERCENT,
+    saturation: number,
   ): string {
     const wheelStartAngle = (360 - dayOffset) % 360;
     const stops = [0, 60, 120, 180, 240, 300, 360]
-      .map((deg) => `hsl(${deg}, ${saturation}%, ${lightness}%)`)
+      .map((deg) => `hsl(${deg}, ${saturation.toFixed(2)}%, ${lightness}%)`)
       .join(", ");
 
     return `conic-gradient(from ${wheelStartAngle}deg, ${stops})`;
@@ -251,24 +307,25 @@ export class ColorClock {
         date.getFullYear(),
         date.getMonth(),
         date.getDate() + (index - currentDayOfWeek),
+        12,
+        0,
+        0,
       );
       const targetDayOfYear = this.getDayOfYear(dateForDay);
 
       return {
         label,
         startingHue: this.getDailyStartingHue(targetDayOfYear),
+        saturation: this.getSeasonalSaturation(dateForDay),
         isToday: index === currentDayOfWeek,
       };
     });
   }
 
   /**
-   * Computes all derived visual and numeric values for a given Date and saturation.
+   * Computes all derived visual and numeric values for a given Date.
    */
-  static getClockState(
-    date: Date,
-    saturation: number = CLOCK_CONFIG.SATURATION_PERCENT,
-  ) {
+  static getClockState(date: Date) {
     const dayOfYear = this.getDayOfYear(date);
     const secondsSinceMidnight = this.getSecondsSinceMidnight(date);
 
@@ -282,6 +339,7 @@ export class ColorClock {
     const dayOffset = this.getDailyStartingHue(dayOfYear);
     const hue = (((minuteAngle + dayOffset) % 360) + 360) % 360;
 
+    const saturation = this.getSeasonalSaturation(date);
     const lightness = this.getLightnessAtSecond(secondsSinceMidnight);
     const isBright = lightness > CLOCK_CONFIG.CONTRAST_THRESHOLD_PERCENT;
 
@@ -294,7 +352,7 @@ export class ColorClock {
       saturation,
       lightness,
       isBright,
-      backgroundColor: `hsl(${hue.toFixed(2)}, ${saturation}%, ${lightness.toFixed(2)}%)`,
+      backgroundColor: `hsl(${hue.toFixed(2)}, ${saturation.toFixed(2)}%, ${lightness.toFixed(2)}%)`,
       hueWheelGradient: this.getHueWheelGradient(
         dayOffset,
         lightness,

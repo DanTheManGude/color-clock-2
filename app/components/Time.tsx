@@ -36,18 +36,17 @@ export default function Time() {
     getServerSnapshot,
   );
   const [offsetMs, setOffsetMs] = useState(0);
-  const [saturation, setSaturation] = useState(CLOCK_CONFIG.SATURATION_PERCENT);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
 
-  // Keep the screen awake while the clock is open
-  const isWakeLockActive = useWakeLock(true);
+  // Keep screen awake while clock is open
+  useWakeLock(true);
 
   // Sync browser tab title, theme-color, and dynamic SVG favicon with live color
   useEffect(() => {
     if (timestamp === 0) return;
 
     const activeDate = new Date(timestamp + offsetMs);
-    const clockState = ColorClock.getClockState(activeDate, saturation);
+    const clockState = ColorClock.getClockState(activeDate);
 
     const formattedTime = activeDate.toLocaleTimeString([], {
       hour: "2-digit",
@@ -89,7 +88,7 @@ export default function Time() {
       link.href = encodedSvg;
       document.head.appendChild(link);
     }
-  }, [timestamp, offsetMs, saturation]);
+  }, [timestamp, offsetMs]);
 
   if (timestamp === 0) {
     return (
@@ -101,10 +100,9 @@ export default function Time() {
 
   const realDate = new Date(timestamp);
   const activeDate = new Date(timestamp + offsetMs);
-  const clockState = ColorClock.getClockState(activeDate, saturation);
+  const clockState = ColorClock.getClockState(activeDate);
 
-  const isSimulated =
-    offsetMs !== 0 || saturation !== CLOCK_CONFIG.SATURATION_PERCENT;
+  const isSimulated = offsetMs !== 0;
   const isDebugActive = isDebugOpen || isSimulated;
   const textColorClass = clockState.isBright ? "text-slate-900" : "text-white";
 
@@ -112,6 +110,26 @@ export default function Time() {
     const targetDate = ColorClock.createDateAtSeconds(
       activeDate,
       targetSeconds,
+    );
+    setOffsetMs(targetDate.getTime() - realDate.getTime());
+  };
+
+  const handleScrubDayOfYear = (targetDayOfYear: number) => {
+    const targetDate = ColorClock.createDateAtDayOfYear(
+      activeDate,
+      targetDayOfYear,
+    );
+    setOffsetMs(targetDate.getTime() - realDate.getTime());
+  };
+
+  const handleJumpToMonthDay = (monthIndex: number, dayOfMonth: number) => {
+    const targetDate = new Date(
+      activeDate.getFullYear(),
+      monthIndex,
+      dayOfMonth,
+      activeDate.getHours(),
+      activeDate.getMinutes(),
+      activeDate.getSeconds(),
     );
     setOffsetMs(targetDate.getTime() - realDate.getTime());
   };
@@ -124,11 +142,6 @@ export default function Time() {
 
   const handleShiftDays = (deltaDays: number) => {
     setOffsetMs((prev) => prev + deltaDays * CLOCK_CONFIG.MS_PER_DAY);
-  };
-
-  const handleReset = () => {
-    setOffsetMs(0);
-    setSaturation(CLOCK_CONFIG.SATURATION_PERCENT);
   };
 
   return (
@@ -148,14 +161,22 @@ export default function Time() {
         isBright={clockState.isBright}
       />
 
-      {/* Digital Readout */}
+      {/* Digital Date & Time Readout */}
+      <div className="text-lg font-semibold uppercase tracking-widest opacity-80 mb-1">
+        {activeDate.toLocaleDateString([], {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+        })}
+      </div>
       <div className="text-5xl font-bold mb-3">
         {activeDate.toLocaleTimeString()}
       </div>
 
-      {/* Primary Hue / Saturation / Lightness Summary */}
+      {/* Primary Hue / Seasonal Saturation / Lightness Summary */}
       <div className={`text-xl opacity-90 ${isDebugActive ? "mb-2" : "mb-8"}`}>
-        Hue {clockState.hue.toFixed(1)}° • Sat {saturation}% • Lightness{" "}
+        Hue {clockState.hue.toFixed(1)}° • Sat{" "}
+        {clockState.saturation.toFixed(1)}% • Lightness{" "}
         {clockState.lightness.toFixed(1)}%
       </div>
 
@@ -170,7 +191,6 @@ export default function Time() {
       <WeekHueStrip
         weekDays={clockState.weekDays}
         activeDayIndex={activeDate.getDay()}
-        saturation={saturation}
         isBright={clockState.isBright}
         onSelectDayOffset={handleShiftDays}
       />
@@ -179,15 +199,16 @@ export default function Time() {
         isOpen={isDebugOpen}
         onToggleOpen={() => setIsDebugOpen((open) => !open)}
         activeDate={activeDate}
+        dayOfYear={clockState.dayOfYear}
         secondsSinceMidnight={clockState.secondsSinceMidnight}
-        saturation={saturation}
         isSimulated={isSimulated}
         isBright={clockState.isBright}
         onScrubSeconds={handleScrubSeconds}
-        onChangeSaturation={setSaturation}
+        onScrubDayOfYear={handleScrubDayOfYear}
+        onJumpToMonthDay={handleJumpToMonthDay}
         onShiftHours={handleShiftHours}
         onShiftDays={handleShiftDays}
-        onReset={handleReset}
+        onReset={() => setOffsetMs(0)}
       />
     </main>
   );

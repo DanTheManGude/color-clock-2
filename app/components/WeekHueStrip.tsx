@@ -3,7 +3,6 @@ import { CLOCK_CONFIG, WeekDaySwatch } from "../lib/colorClock";
 interface WeekHueStripProps {
   weekDays: WeekDaySwatch[];
   activeDayIndex: number;
-  saturation: number;
   isBright: boolean;
   onSelectDayOffset: (deltaDays: number) => void;
 }
@@ -11,7 +10,6 @@ interface WeekHueStripProps {
 export default function WeekHueStrip({
   weekDays,
   activeDayIndex,
-  saturation,
   isBright,
   onSelectDayOffset,
 }: WeekHueStripProps) {
@@ -22,7 +20,6 @@ export default function WeekHueStrip({
   const activeBorderClass = isBright
     ? "border border-slate-900/80 ring-2 ring-slate-900 scale-105"
     : "border border-white/90 ring-2 ring-white scale-105";
-
   return (
     <div className="grid grid-cols-7 gap-2 sm:gap-3 w-full max-w-xl mb-8">
       {weekDays.map((day, index) => (
@@ -32,7 +29,7 @@ export default function WeekHueStrip({
           onClick={() => onSelectDayOffset(index - activeDayIndex)}
           title={`Jump to ${day.label}`}
           style={{
-            backgroundColor: `hsl(${day.startingHue}, ${saturation}%, ${CLOCK_CONFIG.CONTRAST_THRESHOLD_PERCENT}%)`,
+            backgroundColor: `hsl(${day.startingHue}, ${day.saturation.toFixed(1)}%, ${CLOCK_CONFIG.CONTRAST_THRESHOLD_PERCENT}%)`,
           }}
           className={`flex flex-col items-center justify-center py-3 px-2 rounded-xl text-white shadow-md transition-transform cursor-pointer ${
             day.isToday
