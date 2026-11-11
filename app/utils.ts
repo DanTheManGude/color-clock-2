@@ -1,23 +1,3 @@
-/**
- * Returns a new Date on the same calendar day set to the given seconds since midnight.
- */
-function createDateAtSeconds(
-  baseDate: Date,
-  secondsSinceMidnight: number,
-): Date {
-  const result = new Date(
-    baseDate.getFullYear(),
-    baseDate.getMonth(),
-    baseDate.getDate(),
-    0,
-    0,
-    0,
-    0,
-  );
-  result.setSeconds(secondsSinceMidnight);
-  return result;
-}
-
 export const CLOCK_CONFIG = {
   UPDATE_INTERVAL_MS: 1000,
   DAILY_HUE_OFFSET_DEG: 40,
@@ -74,6 +54,26 @@ export class ColorClock {
   }
 
   /**
+   * Returns a new Date on the same calendar day set to the given seconds since midnight.
+   */
+  static createDateAtSeconds(
+    baseDate: Date,
+    secondsSinceMidnight: number,
+  ): Date {
+    const result = new Date(
+      baseDate.getFullYear(),
+      baseDate.getMonth(),
+      baseDate.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    result.setSeconds(secondsSinceMidnight);
+    return result;
+  }
+
+  /**
    * Computes lightness (20% at midnight -> 80% at noon) for any second of the day.
    */
   static getLightnessAtSecond(seconds: number): number {
@@ -115,9 +115,7 @@ export class ColorClock {
   ): HourTick[] {
     return Array.from({ length: CLOCK_CONFIG.HOURS_ON_DIAL }, (_, i) => {
       const angle = i * CLOCK_CONFIG.DEGREES_PER_HOUR;
-      // Signed angular delta from the current hour hand in [-180°, +180°)
       const deltaDeg = ((angle - hourAngle + 540) % 360) - 180;
-      // Convert angular offset on a 12h dial (30° = 1h) to seconds
       const offsetSeconds =
         (deltaDeg / CLOCK_CONFIG.DEGREES_PER_HOUR) *
         CLOCK_CONFIG.SECONDS_PER_HOUR;
