@@ -116,6 +116,12 @@ export default function Time() {
     setOffsetMs((prev) => prev + deltaDays * CLOCK_CONFIG.MS_PER_DAY);
   };
 
+  const handleShiftHours = (deltaHours: number) => {
+    setOffsetMs(
+      (prev) => prev + deltaHours * CLOCK_CONFIG.SECONDS_PER_HOUR * 1000,
+    );
+  };
+
   return (
     <main
       style={{ backgroundColor: clockState.backgroundColor }}
@@ -167,6 +173,7 @@ export default function Time() {
         isSimulated={offsetMs !== 0}
         isBright={clockState.isBright}
         onScrubSeconds={handleScrubSeconds}
+        onShiftHours={handleShiftHours}
         onShiftDays={handleShiftDays}
         onReset={() => setOffsetMs(0)}
       />

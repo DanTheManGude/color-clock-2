@@ -8,15 +8,14 @@ interface TimeDebugControlsProps {
   isSimulated: boolean;
   isBright: boolean;
   onScrubSeconds: (targetSeconds: number) => void;
+  onShiftHours: (deltaHours: number) => void;
   onShiftDays: (deltaDays: number) => void;
   onReset: () => void;
 }
 
 const TIME_PRESETS = [
   { label: "Midnight", seconds: 0 },
-  { label: "6:00 AM", seconds: 6 * CLOCK_CONFIG.SECONDS_PER_HOUR },
   { label: "Noon", seconds: 12 * CLOCK_CONFIG.SECONDS_PER_HOUR },
-  { label: "6:00 PM", seconds: 18 * CLOCK_CONFIG.SECONDS_PER_HOUR },
 ] as const;
 
 export default function TimeDebugControls({
@@ -27,6 +26,7 @@ export default function TimeDebugControls({
   isSimulated,
   isBright,
   onScrubSeconds,
+  onShiftHours,
   onShiftDays,
   onReset,
 }: TimeDebugControlsProps) {
@@ -80,7 +80,7 @@ export default function TimeDebugControls({
             />
           </div>
 
-          {/* Quick Time-of-Day Presets & Day Stepping */}
+          {/* Quick Time-of-Day Presets & Hour/Day Stepping */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-1.5">
               {TIME_PRESETS.map((preset) => (
@@ -95,7 +95,21 @@ export default function TimeDebugControls({
               ))}
             </div>
 
-            <div className="flex gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => onShiftHours(-1)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
+              >
+                -1 Hr
+              </button>
+              <button
+                type="button"
+                onClick={() => onShiftHours(1)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
+              >
+                +1 Hr
+              </button>
               <button
                 type="button"
                 onClick={() => onShiftDays(-1)}

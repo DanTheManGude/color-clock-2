@@ -13,9 +13,13 @@ export default function WeekHueStrip({
   isBright,
   onSelectDayOffset,
 }: WeekHueStripProps) {
+  const baseBorderClass = isBright
+    ? "border border-slate-900/25"
+    : "border border-white/30";
+
   const activeBorderClass = isBright
-    ? "ring-2 ring-slate-900 scale-105"
-    : "ring-2 ring-white scale-105";
+    ? "border border-slate-900/80 ring-2 ring-slate-900 scale-105"
+    : "border border-white/90 ring-2 ring-white scale-105";
 
   return (
     <div className="grid grid-cols-7 gap-2 sm:gap-3 w-full max-w-xl mb-8">
@@ -29,7 +33,9 @@ export default function WeekHueStrip({
             backgroundColor: `hsl(${day.startingHue}, ${CLOCK_CONFIG.SATURATION_PERCENT}%, 50%)`,
           }}
           className={`flex flex-col items-center justify-center py-3 px-2 rounded-xl text-white shadow-md transition-transform cursor-pointer ${
-            day.isToday ? activeBorderClass : "opacity-90 hover:opacity-100"
+            day.isToday
+              ? activeBorderClass
+              : `${baseBorderClass} opacity-90 hover:opacity-100`
           }`}
         >
           <span className="text-xs font-bold uppercase tracking-wider drop-shadow-sm">
