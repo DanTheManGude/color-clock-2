@@ -1,4 +1,5 @@
 import { HourTick, HueOffsetTick } from "../lib/colorClock";
+
 interface ColorClockDialProps {
   hueWheelGradient: string;
   brightnessRingGradient: string;
@@ -23,9 +24,11 @@ export default function ColorClockDial({
   isBright,
 }: ColorClockDialProps) {
   const handColorClass = isBright ? "bg-slate-900" : "bg-white";
+  const seamMarkerClass = isBright ? "bg-slate-900/40" : "bg-white/40";
   const ringOutlineColor = isBright
     ? "rgba(15, 23, 42, 0.25)"
     : "rgba(255, 255, 255, 0.35)";
+
   return (
     <div
       style={{
@@ -35,6 +38,14 @@ export default function ColorClockDial({
       className="relative w-64 h-64 rounded-full p-4 overflow-hidden mb-8 flex items-center justify-center"
       aria-label={`Color and 12-hour value clock showing ${Math.round(hue)} degrees hue and ${Math.round(value)}% value`}
     >
+      {/* ±6h Boundary Seam Marker (opposite the hour hand) */}
+      <div
+        style={{ transform: `rotate(${hourAngle + 180}deg)` }}
+        className="absolute inset-0 flex justify-center pointer-events-none transition-transform duration-300 ease-linear"
+      >
+        <div className={`w-0.5 h-4 ${seamMarkerClass}`} />
+      </div>
+
       {/* 12-Hour Bezel Tick Marks */}
       {hourTicks.map(({ angle, isCardinal, isBrightUnderneath }) => {
         const tickContrastClass = isBrightUnderneath
@@ -55,6 +66,7 @@ export default function ColorClockDial({
           </div>
         );
       })}
+
       {/* Inner HSV Hue Wheel */}
       <div
         style={{
@@ -81,6 +93,7 @@ export default function ColorClockDial({
             </div>
           );
         })}
+
         {/* Hour Hand (Short & Thick) */}
         <div
           style={{ transform: `rotate(${hourAngle}deg)` }}

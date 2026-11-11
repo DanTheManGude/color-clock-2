@@ -314,23 +314,42 @@ export class ColorClock {
   }
 
   /**
-   * Builds the CSS conic-gradient string for the 12-hour rolling grayscale HSV Value ring.
+   * Builds the CSS conic-gradient string for the 12-hour rolling grayscale HSV Value ring,
+   * subtly feathering the ±6h boundary opposite the hour hand so -6h and +6h blend smoothly.
    */
   static getBrightnessRingGradient(
     secondsSinceMidnight: number,
     hourAngle: number,
   ): string {
-    const brightnessStops = Array.from({ length: 25 }, (_, i) => {
-      const offsetHours = i - 12;
-      const angleDeg = i * 15;
+    const steps = 48; // 15-minute resolution (7.5° per step) across 12 hours
+    const minus6Value = this.getValueAtSecond(
+      secondsSinceMidnight - 6 * CLOCK_CONFIG.SECONDS_PER_HOUR,
+    );
+    const plus6Value = this.getValueAtSecond(
+      secondsSinceMidnight + 6 * CLOCK_CONFIG.SECONDS_PER_HOUR,
+    );
+    const seamMidpointValue = (minus6Value + plus6Value) / 2;
+
+    const interiorStops = Array.from({ length: steps - 1 }, (_, idx) => {
+      const i = idx + 1; // 1 to 47 (7.5° to 352.5°), leaving 0° and 360° for the blended seam
+      const offsetHours = -6 + (i / steps) * 12;
+      const angleDeg = (i / steps) * 360;
       const stopValue = this.getValueAtSecond(
         secondsSinceMidnight + offsetHours * CLOCK_CONFIG.SECONDS_PER_HOUR,
       );
-      return `${this.hsvToCssRgb(0, 0, stopValue)} ${angleDeg}deg`;
-    }).join(", ");
+      return `${this.hsvToCssRgb(0, 0, stopValue)} ${angleDeg.toFixed(2)}deg`;
+    });
 
-    const ringStartAngle = (hourAngle + 180) % 360;
-    return `conic-gradient(from ${ringStartAngle.toFixed(2)}deg, ${brightnessStops})`;
+    const seamColor = this.hsvToCssRgb(0, 0, seamMidpointValue);
+    const allStops = [
+      `${seamColor} 0deg`,
+      ...interiorStops,
+      `${seamColor} 360deg`,
+    ].join(", ");
+
+    const normalizedHourAngle = ((hourAngle % 360) + 360) % 360;
+    const ringStartAngle = (normalizedHourAngle + 180) % 360;
+    return `conic-gradient(from ${ringStartAngle.toFixed(2)}deg, ${allStops})`;
   }
 
   /**
