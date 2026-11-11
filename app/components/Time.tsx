@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { CLOCK_CONFIG, ColorClock } from "../utils";
+import { CLOCK_CONFIG, ColorClock } from "../lib/colorClock";
 import ColorClockDial from "./ColorClockDial";
 import WeekHueStrip from "./WeekHueStrip";
 import TimeDebugControls from "./TimeDebugControls";
@@ -35,6 +35,7 @@ export default function Time() {
     getServerSnapshot,
   );
   const [offsetMs, setOffsetMs] = useState(0);
+  const [saturation, setSaturation] = useState(CLOCK_CONFIG.SATURATION_PERCENT);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
 
   // Sync browser tab title, theme-color, and dynamic SVG favicon with live color
@@ -42,7 +43,7 @@ export default function Time() {
     if (timestamp === 0) return;
 
     const activeDate = new Date(timestamp + offsetMs);
-    const clockState = ColorClock.getClockState(activeDate);
+    const clockState = ColorClock.getClockState(activeDate, saturation);
 
     const formattedTime = activeDate.toLocaleTimeString([], {
       hour: "2-digit",
@@ -50,7 +51,6 @@ export default function Time() {
     });
     document.title = `${formattedTime} • ${Math.round(clockState.hue)}° Color Clock`;
 
-    // Update mobile/PWA browser chrome theme color
     let themeMeta = document.querySelector<HTMLMetaElement>(
       'meta[name="theme-color"]',
     );
@@ -61,7 +61,6 @@ export default function Time() {
     }
     themeMeta.content = clockState.backgroundColor;
 
-    // Generate live SVG icon showing current background hue & clock hands
     const handStroke = clockState.isBright ? "#0f172a" : "#ffffff";
     const svg = `<svg xmlns="http://w3.org" viewBox="0 0 64 64">
       <circle cx="32" cy="32" r="30" fill="${clockState.backgroundColor}" stroke="${handStroke}" stroke-width="3"/>
@@ -70,7 +69,6 @@ export default function Time() {
       <circle cx="32" cy="32" r="3" fill="${handStroke}"/>
     </svg>`;
 
-    // Update all existing icon links (including Next.js static icon) or create one
     const encodedSvg = `data:image/svg+xml,${encodeURIComponent(svg)}`;
     const iconLinks =
       document.querySelectorAll<HTMLLinkElement>('link[rel*="icon"]');
@@ -87,7 +85,7 @@ export default function Time() {
       link.href = encodedSvg;
       document.head.appendChild(link);
     }
-  }, [timestamp, offsetMs]);
+  }, [timestamp, offsetMs, saturation]);
 
   if (timestamp === 0) {
     return (
@@ -99,9 +97,11 @@ export default function Time() {
 
   const realDate = new Date(timestamp);
   const activeDate = new Date(timestamp + offsetMs);
-  const clockState = ColorClock.getClockState(activeDate);
+  const clockState = ColorClock.getClockState(activeDate, saturation);
 
-  const isDebugActive = isDebugOpen || offsetMs !== 0;
+  const isSimulated =
+    offsetMs !== 0 || saturation !== CLOCK_CONFIG.SATURATION_PERCENT;
+  const isDebugActive = isDebugOpen || isSimulated;
   const textColorClass = clockState.isBright ? "text-slate-900" : "text-white";
 
   const handleScrubSeconds = (targetSeconds: number) => {
@@ -112,14 +112,19 @@ export default function Time() {
     setOffsetMs(targetDate.getTime() - realDate.getTime());
   };
 
-  const handleShiftDays = (deltaDays: number) => {
-    setOffsetMs((prev) => prev + deltaDays * CLOCK_CONFIG.MS_PER_DAY);
-  };
-
   const handleShiftHours = (deltaHours: number) => {
     setOffsetMs(
       (prev) => prev + deltaHours * CLOCK_CONFIG.SECONDS_PER_HOUR * 1000,
     );
+  };
+
+  const handleShiftDays = (deltaDays: number) => {
+    setOffsetMs((prev) => prev + deltaDays * CLOCK_CONFIG.MS_PER_DAY);
+  };
+
+  const handleReset = () => {
+    setOffsetMs(0);
+    setSaturation(CLOCK_CONFIG.SATURATION_PERCENT);
   };
 
   return (
@@ -144,9 +149,9 @@ export default function Time() {
         {activeDate.toLocaleTimeString()}
       </div>
 
-      {/* Primary Hue / Lightness Summary */}
+      {/* Primary Hue / Saturation / Lightness Summary */}
       <div className={`text-xl opacity-90 ${isDebugActive ? "mb-2" : "mb-8"}`}>
-        Hue {clockState.hue.toFixed(1)}° • Lightness{" "}
+        Hue {clockState.hue.toFixed(1)}° • Sat {saturation}% • Lightness{" "}
         {clockState.lightness.toFixed(1)}%
       </div>
 
@@ -154,13 +159,14 @@ export default function Time() {
       {isDebugActive && (
         <div className="text-sm opacity-75 mb-8">
           Seconds today: {clockState.secondsSinceMidnight}s
-          {offsetMs !== 0 && " • (Simulated)"}
+          {isSimulated && " • (Simulated)"}
         </div>
       )}
 
       <WeekHueStrip
         weekDays={clockState.weekDays}
         activeDayIndex={activeDate.getDay()}
+        saturation={saturation}
         isBright={clockState.isBright}
         onSelectDayOffset={handleShiftDays}
       />
@@ -170,12 +176,14 @@ export default function Time() {
         onToggleOpen={() => setIsDebugOpen((open) => !open)}
         activeDate={activeDate}
         secondsSinceMidnight={clockState.secondsSinceMidnight}
-        isSimulated={offsetMs !== 0}
+        saturation={saturation}
+        isSimulated={isSimulated}
         isBright={clockState.isBright}
         onScrubSeconds={handleScrubSeconds}
+        onChangeSaturation={setSaturation}
         onShiftHours={handleShiftHours}
         onShiftDays={handleShiftDays}
-        onReset={() => setOffsetMs(0)}
+        onReset={handleReset}
       />
     </main>
   );

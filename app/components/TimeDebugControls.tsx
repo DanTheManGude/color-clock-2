@@ -1,13 +1,15 @@
-import { CLOCK_CONFIG } from "../utils";
+import { CLOCK_CONFIG } from "../lib/colorClock";
 
 interface TimeDebugControlsProps {
   isOpen: boolean;
   onToggleOpen: () => void;
   activeDate: Date;
   secondsSinceMidnight: number;
+  saturation: number;
   isSimulated: boolean;
   isBright: boolean;
   onScrubSeconds: (targetSeconds: number) => void;
+  onChangeSaturation: (newSaturation: number) => void;
   onShiftHours: (deltaHours: number) => void;
   onShiftDays: (deltaDays: number) => void;
   onReset: () => void;
@@ -23,9 +25,11 @@ export default function TimeDebugControls({
   onToggleOpen,
   activeDate,
   secondsSinceMidnight,
+  saturation,
   isSimulated,
   isBright,
   onScrubSeconds,
+  onChangeSaturation,
   onShiftHours,
   onShiftDays,
   onReset,
@@ -77,6 +81,24 @@ export default function TimeDebugControls({
               onChange={(e) => onScrubSeconds(Number(e.target.value))}
               className="w-full accent-current cursor-pointer"
               aria-label="Scrub simulated time of day"
+            />
+          </div>
+
+          {/* Saturation Slider */}
+          <div>
+            <div className="flex justify-between text-xs font-semibold mb-1.5">
+              <span>Saturation</span>
+              <span>{saturation}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={saturation}
+              onChange={(e) => onChangeSaturation(Number(e.target.value))}
+              className="w-full accent-current cursor-pointer"
+              aria-label="Adjust color saturation"
             />
           </div>
 

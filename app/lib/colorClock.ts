@@ -183,6 +183,7 @@ export class ColorClock {
   static getHueOffsetTicks(
     dayOffset: number,
     lightness: number,
+    saturation: number = CLOCK_CONFIG.SATURATION_PERCENT,
   ): HueOffsetTick[] {
     const count = Math.floor(360 / CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG);
 
@@ -191,7 +192,7 @@ export class ColorClock {
       const hueAtTick = (((dayOffset + angle) % 360) + 360) % 360;
       const luminance = this.getHslRelativeLuminance(
         hueAtTick,
-        CLOCK_CONFIG.SATURATION_PERCENT,
+        saturation,
         lightness,
       );
 
@@ -206,11 +207,14 @@ export class ColorClock {
   /**
    * Builds the CSS conic-gradient string for the inner hue wheel.
    */
-  static getHueWheelGradient(dayOffset: number, lightness: number): string {
+  static getHueWheelGradient(
+    dayOffset: number,
+    lightness: number,
+    saturation: number = CLOCK_CONFIG.SATURATION_PERCENT,
+  ): string {
     const wheelStartAngle = (360 - dayOffset) % 360;
-    const sat = CLOCK_CONFIG.SATURATION_PERCENT;
     const stops = [0, 60, 120, 180, 240, 300, 360]
-      .map((deg) => `hsl(${deg}, ${sat}%, ${lightness}%)`)
+      .map((deg) => `hsl(${deg}, ${saturation}%, ${lightness}%)`)
       .join(", ");
 
     return `conic-gradient(from ${wheelStartAngle}deg, ${stops})`;
@@ -259,9 +263,12 @@ export class ColorClock {
   }
 
   /**
-   * Computes all derived visual and numeric values for a given Date.
+   * Computes all derived visual and numeric values for a given Date and saturation.
    */
-  static getClockState(date: Date) {
+  static getClockState(
+    date: Date,
+    saturation: number = CLOCK_CONFIG.SATURATION_PERCENT,
+  ) {
     const dayOfYear = this.getDayOfYear(date);
     const secondsSinceMidnight = this.getSecondsSinceMidnight(date);
 
@@ -284,16 +291,21 @@ export class ColorClock {
       minuteAngle,
       hourAngle,
       hue,
+      saturation,
       lightness,
       isBright,
-      backgroundColor: `hsl(${hue.toFixed(2)}, ${CLOCK_CONFIG.SATURATION_PERCENT}%, ${lightness.toFixed(2)}%)`,
-      hueWheelGradient: this.getHueWheelGradient(dayOffset, lightness),
+      backgroundColor: `hsl(${hue.toFixed(2)}, ${saturation}%, ${lightness.toFixed(2)}%)`,
+      hueWheelGradient: this.getHueWheelGradient(
+        dayOffset,
+        lightness,
+        saturation,
+      ),
       brightnessRingGradient: this.getBrightnessRingGradient(
         secondsSinceMidnight,
         hourAngle,
       ),
       hourTicks: this.getHourTicks(secondsSinceMidnight, hourAngle),
-      hueOffsetTicks: this.getHueOffsetTicks(dayOffset, lightness),
+      hueOffsetTicks: this.getHueOffsetTicks(dayOffset, lightness, saturation),
       weekDays: this.getWeekSwatches(date),
     };
   }

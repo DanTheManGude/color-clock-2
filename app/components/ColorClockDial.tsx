@@ -1,4 +1,4 @@
-import { HourTick, HueOffsetTick } from "../utils";
+import { HourTick, HueOffsetTick } from "../lib/colorClock";
 
 interface ColorClockDialProps {
   hueWheelGradient: string;
