@@ -175,16 +175,14 @@ export default function Time() {
 
       {/* Primary Hue / Seasonal Saturation / Value Summary */}
       <div className="text-xl opacity-90 mb-1">
-        Hue {clockState.hue.toFixed(1)}° • Sat{" "}
-        {clockState.saturation.toFixed(1)}% • Value{" "}
-        {clockState.value.toFixed(1)}%
+        {`Hue ${clockState.hue.toFixed(1)}° • Sat ${clockState.saturation.toFixed(1)}% • Value ${clockState.value.toFixed(1)}%`}
       </div>
 
-      {/* Live RGB Hex Readout */}
+      {/* Live RGB Readout */}
       <div
-        className={`text-base opacity-85 tracking-wider ${isDebugActive ? "mb-2" : "mb-8"}`}
+        className={`text-base opacity-85 ${isDebugActive ? "mb-2" : "mb-8"}`}
       >
-        {clockState.hex}
+        {`RGB(${clockState.rgb.r}, ${clockState.rgb.g}, ${clockState.rgb.b}) — ${clockState.hex}`}
       </div>
 
       {/* Debug-Only Seconds Today Readout */}
