@@ -1,12 +1,11 @@
-"use client";
-
-import { useState } from "react";
 import { CLOCK_CONFIG } from "../utils";
 
 interface TimeDebugControlsProps {
+  isOpen: boolean;
+  onToggleOpen: () => void;
   activeDate: Date;
   secondsSinceMidnight: number;
-  isDebugActive: boolean;
+  isSimulated: boolean;
   isBright: boolean;
   onScrubSeconds: (targetSeconds: number) => void;
   onShiftDays: (deltaDays: number) => void;
@@ -21,16 +20,16 @@ const TIME_PRESETS = [
 ] as const;
 
 export default function TimeDebugControls({
+  isOpen,
+  onToggleOpen,
   activeDate,
   secondsSinceMidnight,
-  isDebugActive,
+  isSimulated,
   isBright,
   onScrubSeconds,
   onShiftDays,
   onReset,
 }: TimeDebugControlsProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const panelBgClass = isBright
     ? "bg-slate-900/10 border-slate-900/20"
     : "bg-white/10 border-white/20";
@@ -43,12 +42,12 @@ export default function TimeDebugControls({
       <div className="flex items-center justify-center gap-2">
         <button
           type="button"
-          onClick={() => setIsOpen((open) => !open)}
+          onClick={onToggleOpen}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${panelBgClass} ${buttonBgClass}`}
         >
           {isOpen ? "Hide Debug Time" : "Debug Time"}
         </button>
-        {isDebugActive && (
+        {isSimulated && (
           <button
             type="button"
             onClick={onReset}

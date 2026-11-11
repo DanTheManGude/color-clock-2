@@ -35,10 +35,7 @@ export default function WeekHueStrip({
           <span className="text-xs font-bold uppercase tracking-wider drop-shadow-sm">
             {day.label}
           </span>
-          <span className="text-lg font-bold my-0.5 drop-shadow-sm">
-            {day.dayNumber}
-          </span>
-          <span className="text-[11px] opacity-90 drop-shadow-sm">
+          <span className="text-sm font-semibold mt-1 opacity-95 drop-shadow-sm">
             {day.startingHue}°
           </span>
         </button>

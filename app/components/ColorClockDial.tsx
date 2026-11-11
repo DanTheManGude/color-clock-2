@@ -1,9 +1,10 @@
-import { ColorClock, HourTick } from "../utils";
+import { HourTick, HueOffsetTick } from "../utils";
 
 interface ColorClockDialProps {
   hueWheelGradient: string;
   brightnessRingGradient: string;
   hourTicks: HourTick[];
+  hueOffsetTicks: HueOffsetTick[];
   hourAngle: number;
   minuteAngle: number;
   hue: number;
@@ -11,12 +12,11 @@ interface ColorClockDialProps {
   isBright: boolean;
 }
 
-const HUE_OFFSET_TICKS = ColorClock.getHueOffsetTickAngles();
-
 export default function ColorClockDial({
   hueWheelGradient,
   brightnessRingGradient,
   hourTicks,
+  hueOffsetTicks,
   hourAngle,
   minuteAngle,
   hue,
@@ -24,7 +24,6 @@ export default function ColorClockDial({
   isBright,
 }: ColorClockDialProps) {
   const handColorClass = isBright ? "bg-slate-900" : "bg-white";
-  const hueTickClass = isBright ? "bg-slate-900/30" : "bg-white/35";
   const ringOutlineColor = isBright
     ? "rgba(15, 23, 42, 0.25)"
     : "rgba(255, 255, 255, 0.35)";
@@ -67,34 +66,42 @@ export default function ColorClockDial({
         }}
         className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center"
       >
-        {/* Subtle 40° Hue-Offset Tick Marks */}
-        {HUE_OFFSET_TICKS.map((angle) => (
-          <div
-            key={`hue-${angle}`}
-            style={{ transform: `rotate(${angle}deg)` }}
-            className="absolute inset-0 flex justify-center pointer-events-none"
-          >
-            <div className={`w-0.5 h-2.5 mt-1 rounded-full ${hueTickClass}`} />
-          </div>
-        ))}
+        {/* Per-Tick Contrasted 40° Hue-Offset Tick Marks */}
+        {hueOffsetTicks.map(({ angle, isBrightUnderneath }) => {
+          const hueTickContrastClass = isBrightUnderneath
+            ? "bg-slate-900/70"
+            : "bg-white/80";
 
-        {/* 12-Hour Hand */}
+          return (
+            <div
+              key={`hue-${angle}`}
+              style={{ transform: `rotate(${angle}deg)` }}
+              className="absolute inset-0 flex justify-center pointer-events-none"
+            >
+              <div
+                className={`w-0.5 h-2.5 mt-1 rounded-full transition-colors duration-500 ${hueTickContrastClass}`}
+              />
+            </div>
+          );
+        })}
+
+        {/* Hour Hand (Short & Thick) */}
         <div
           style={{ transform: `rotate(${hourAngle}deg)` }}
           className="absolute inset-0 flex justify-center items-center transition-transform duration-300 ease-linear"
         >
           <div
-            className={`w-2 h-24 -translate-y-12 rounded-full ${handColorClass} shadow-md`}
+            className={`w-2.5 h-14 -translate-y-7 rounded-full ${handColorClass} shadow-md`}
           />
         </div>
 
-        {/* Minute / Hue Hand */}
+        {/* Minute / Hue Hand (Long & Thin) */}
         <div
           style={{ transform: `rotate(${minuteAngle}deg)` }}
           className="absolute inset-0 flex justify-center items-center transition-transform duration-300 ease-linear"
         >
           <div
-            className={`w-1 h-20 -translate-y-10 rounded-full ${handColorClass} shadow-md`}
+            className={`w-1 h-24 -translate-y-12 rounded-full ${handColorClass} shadow-md`}
           />
         </div>
 

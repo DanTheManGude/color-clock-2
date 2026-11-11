@@ -7,6 +7,7 @@ export const CLOCK_CONFIG = {
   MIN_LIGHTNESS_PERCENT: 20,
   MAX_LIGHTNESS_PERCENT: 80,
   CONTRAST_THRESHOLD_PERCENT: 55,
+  LUMINANCE_CONTRAST_THRESHOLD: 0.179,
   SECONDS_PER_MINUTE: 60,
   SECONDS_PER_HOUR: 3600,
   SECONDS_PER_HALF_DAY: 43200,
@@ -17,7 +18,6 @@ export const CLOCK_CONFIG = {
 
 export interface WeekDaySwatch {
   label: string;
-  dayNumber: number;
   startingHue: number;
   isToday: boolean;
 }
@@ -25,6 +25,11 @@ export interface WeekDaySwatch {
 export interface HourTick {
   angle: number;
   isCardinal: boolean;
+  isBrightUnderneath: boolean;
+}
+
+export interface HueOffsetTick {
+  angle: number;
   isBrightUnderneath: boolean;
 }
 
@@ -106,6 +111,46 @@ export class ColorClock {
   }
 
   /**
+   * Computes WCAG relative luminance (0.0 -> 1.0) from HSL values.
+   */
+  static getHslRelativeLuminance(h: number, s: number, l: number): number {
+    const sat = s / 100;
+    const light = l / 100;
+    const c = (1 - Math.abs(2 * light - 1)) * sat;
+    const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+    const m = light - c / 2;
+
+    let r1 = 0;
+    let g1 = 0;
+    let b1 = 0;
+
+    if (h < 60) {
+      [r1, g1, b1] = [c, x, 0];
+    } else if (h < 120) {
+      [r1, g1, b1] = [x, c, 0];
+    } else if (h < 180) {
+      [r1, g1, b1] = [0, c, x];
+    } else if (h < 240) {
+      [r1, g1, b1] = [0, x, c];
+    } else if (h < 300) {
+      [r1, g1, b1] = [x, 0, c];
+    } else {
+      [r1, g1, b1] = [c, 0, x];
+    }
+
+    const toLinear = (channel: number) =>
+      channel <= 0.03928
+        ? channel / 12.92
+        : Math.pow((channel + 0.055) / 1.055, 2.4);
+
+    const r = toLinear(r1 + m);
+    const g = toLinear(g1 + m);
+    const b = toLinear(b1 + m);
+
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }
+
+  /**
    * Computes the 12 hour tick marks with per-tick contrast based on the ring's lightness
    * at each tick's position (-6h to +6h window centered on hourAngle).
    */
@@ -133,14 +178,29 @@ export class ColorClock {
   }
 
   /**
-   * Returns the hue offset marker angles around the wheel (0°, 40°, 80°, ..., 320°).
+   * Computes the 40° hue-offset ticks with per-tick perceptual contrast against the hue underneath.
    */
-  static getHueOffsetTickAngles(): number[] {
+  static getHueOffsetTicks(
+    dayOffset: number,
+    lightness: number,
+  ): HueOffsetTick[] {
     const count = Math.floor(360 / CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG);
-    return Array.from(
-      { length: count },
-      (_, i) => i * CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG,
-    );
+
+    return Array.from({ length: count }, (_, i) => {
+      const angle = i * CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG;
+      const hueAtTick = (((dayOffset + angle) % 360) + 360) % 360;
+      const luminance = this.getHslRelativeLuminance(
+        hueAtTick,
+        CLOCK_CONFIG.SATURATION_PERCENT,
+        lightness,
+      );
+
+      return {
+        angle,
+        isBrightUnderneath:
+          luminance > CLOCK_CONFIG.LUMINANCE_CONTRAST_THRESHOLD,
+      };
+    });
   }
 
   /**
@@ -192,7 +252,6 @@ export class ColorClock {
 
       return {
         label,
-        dayNumber: dateForDay.getDate(),
         startingHue: this.getDailyStartingHue(targetDayOfYear),
         isToday: index === currentDayOfWeek,
       };
@@ -206,17 +265,16 @@ export class ColorClock {
     const dayOfYear = this.getDayOfYear(date);
     const secondsSinceMidnight = this.getSecondsSinceMidnight(date);
 
-    const secondsInCurrentHour =
-      secondsSinceMidnight % CLOCK_CONFIG.SECONDS_PER_HOUR;
+    // Continuous cumulative angles prevent CSS transitions from spinning backwards at 360° -> 0°
     const minuteAngle =
-      (secondsInCurrentHour / CLOCK_CONFIG.SECONDS_PER_HOUR) * 360;
-    const dayOffset = this.getDailyStartingHue(dayOfYear);
-    const hue = (minuteAngle + dayOffset) % 360;
-
+      (secondsSinceMidnight / CLOCK_CONFIG.SECONDS_PER_HOUR) * 360;
     const hourAngle =
-      ((secondsSinceMidnight % CLOCK_CONFIG.SECONDS_PER_HALF_DAY) /
-        CLOCK_CONFIG.SECONDS_PER_HALF_DAY) *
-      360;
+      (secondsSinceMidnight / CLOCK_CONFIG.SECONDS_PER_HALF_DAY) * 360;
+
+    // Normalize hue into [0, 360) for HSL color output
+    const dayOffset = this.getDailyStartingHue(dayOfYear);
+    const hue = (((minuteAngle + dayOffset) % 360) + 360) % 360;
+
     const lightness = this.getLightnessAtSecond(secondsSinceMidnight);
     const isBright = lightness > CLOCK_CONFIG.CONTRAST_THRESHOLD_PERCENT;
 
@@ -235,6 +293,7 @@ export class ColorClock {
         hourAngle,
       ),
       hourTicks: this.getHourTicks(secondsSinceMidnight, hourAngle),
+      hueOffsetTicks: this.getHueOffsetTicks(dayOffset, lightness),
       weekDays: this.getWeekSwatches(date),
     };
   }
