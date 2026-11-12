@@ -112,7 +112,7 @@ function ColorClockDial({
     [isBright],
   );
   const pinColorClass = useMemo(
-    () => (isBright ? "bg-slate-800/90" : "bg-slate-100/90"),
+    () => (!isBright ? "bg-slate-800" : "bg-slate-100"),
     [isBright],
   );
   const ringOutlineColor = useMemo(
