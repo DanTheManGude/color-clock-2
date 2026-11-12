@@ -7,6 +7,7 @@ interface ColorClockDialProps {
   hueOffsetTicks: HueOffsetTick[];
   hourAngle: number;
   minuteAngle: number;
+  secondAngle: number;
   hue: number;
   value: number;
   isBright: boolean;
@@ -19,12 +20,13 @@ export default function ColorClockDial({
   hueOffsetTicks,
   hourAngle,
   minuteAngle,
+  secondAngle,
   hue,
   value,
   isBright,
 }: ColorClockDialProps) {
-  // Solid, non-transparent softer charcoal and off-white
   const handColorClass = isBright ? "bg-slate-800" : "bg-slate-100";
+  const secondHandClass = isBright ? "bg-slate-800/75" : "bg-slate-100/80";
 
   const ringOutlineColor = isBright
     ? "rgba(15, 23, 42, 0.25)"
@@ -104,6 +106,16 @@ export default function ColorClockDial({
         >
           <div
             className={`w-1 h-24 -translate-y-12 rounded-full ${handColorClass}`}
+          />
+        </div>
+
+        {/* Second Hand (Ultra-Thin with Counterweight Tail) */}
+        <div
+          style={{ transform: `rotate(${secondAngle}deg)` }}
+          className="absolute inset-0 flex justify-center items-center transition-transform duration-150 ease-out"
+        >
+          <div
+            className={`w-0.5 h-28 -translate-y-10 rounded-full ${secondHandClass}`}
           />
         </div>
 

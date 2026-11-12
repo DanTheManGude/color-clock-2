@@ -110,6 +110,7 @@ export default function Time() {
         hueOffsetTicks={clockState.hueOffsetTicks}
         hourAngle={clockState.hourAngle}
         minuteAngle={clockState.minuteAngle}
+        secondAngle={clockState.secondAngle}
         hue={clockState.hue}
         value={clockState.value}
         isBright={clockState.isBright}

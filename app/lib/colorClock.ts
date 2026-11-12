@@ -403,11 +403,15 @@ export class ColorClock {
   static getClockState(date: Date) {
     const dayOfYear = this.getDayOfYear(date);
     const secondsSinceMidnight = this.getSecondsSinceMidnight(date);
+
     // Continuous cumulative angles prevent CSS transitions from spinning backwards at 360° -> 0°
+    const secondAngle =
+      (secondsSinceMidnight / CLOCK_CONFIG.SECONDS_PER_MINUTE) * 360;
     const minuteAngle =
       (secondsSinceMidnight / CLOCK_CONFIG.SECONDS_PER_HOUR) * 360;
     const hourAngle =
       (secondsSinceMidnight / CLOCK_CONFIG.SECONDS_PER_HALF_DAY) * 360;
+
     // Normalize hue into [0, 360)
     const dayOffset = this.getDailyStartingHue(dayOfYear);
     const hue = (((minuteAngle + dayOffset) % 360) + 360) % 360;
@@ -421,6 +425,7 @@ export class ColorClock {
     return {
       dayOfYear,
       secondsSinceMidnight,
+      secondAngle,
       minuteAngle,
       hourAngle,
       hue,
