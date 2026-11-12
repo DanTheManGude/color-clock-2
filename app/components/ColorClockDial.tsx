@@ -23,8 +23,9 @@ export default function ColorClockDial({
   value,
   isBright,
 }: ColorClockDialProps) {
-  const handColorClass = isBright ? "bg-slate-900" : "bg-white";
-  const seamMarkerClass = isBright ? "bg-slate-900/40" : "bg-white/40";
+  // Solid, non-transparent softer charcoal and off-white
+  const handColorClass = isBright ? "bg-slate-800" : "bg-slate-100";
+
   const ringOutlineColor = isBright
     ? "rgba(15, 23, 42, 0.25)"
     : "rgba(255, 255, 255, 0.35)";
@@ -38,12 +39,6 @@ export default function ColorClockDial({
       className="relative w-64 h-64 rounded-full p-4 overflow-hidden mb-8 flex items-center justify-center"
       aria-label={`Color and 12-hour value clock showing ${Math.round(hue)} degrees hue and ${Math.round(value)}% value`}
     >
-      {/* ±6h Boundary Seam Marker (opposite the hour hand) */}
-      <div
-        style={{ transform: `rotate(${hourAngle + 180}deg)` }}
-        className="absolute inset-0 flex justify-center pointer-events-none transition-transform duration-300 ease-linear"
-      />
-
       {/* 12-Hour Bezel Tick Marks */}
       {hourTicks.map(({ angle, isCardinal, isBrightUnderneath }) => {
         const tickContrastClass = isBrightUnderneath
@@ -98,7 +93,7 @@ export default function ColorClockDial({
           className="absolute inset-0 flex justify-center items-center transition-transform duration-300 ease-linear"
         >
           <div
-            className={`w-2.5 h-14 -translate-y-7 rounded-full ${handColorClass} shadow-md`}
+            className={`w-2.5 h-14 -translate-y-7 rounded-full ${handColorClass}`}
           />
         </div>
 
@@ -108,12 +103,12 @@ export default function ColorClockDial({
           className="absolute inset-0 flex justify-center items-center transition-transform duration-300 ease-linear"
         >
           <div
-            className={`w-1 h-24 -translate-y-12 rounded-full ${handColorClass} shadow-md`}
+            className={`w-1 h-24 -translate-y-12 rounded-full ${handColorClass}`}
           />
         </div>
 
         {/* Center Clock Pin */}
-        <div className={`w-4 h-4 rounded-full z-10 ${handColorClass} shadow`} />
+        <div className={`w-4 h-4 rounded-full z-10 ${handColorClass}`} />
       </div>
     </div>
   );
