@@ -113,54 +113,56 @@ export default function Time() {
   return (
     <main
       style={mainStyle}
-      className={`min-h-dvh w-full flex flex-col items-center justify-center px-4 py-4 sm:p-6 font-mono text-center transition-colors duration-500 ${textColorClass}`}
+      className={`min-h-dvh w-full flex flex-col items-center px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6 font-mono text-center transition-colors duration-500 ${textColorClass}`}
     >
-      <ColorClockDial
-        hueWheelGradient={clockState.hueWheelGradient}
-        brightnessRingGradient={clockState.brightnessRingGradient}
-        hourTicks={clockState.hourTicks}
-        hueOffsetTicks={clockState.hueOffsetTicks}
-        hourAngle={clockState.hourAngle}
-        minuteAngle={clockState.minuteAngle}
-        secondAngle={clockState.secondAngle}
-        hue={clockState.hue}
-        value={clockState.value}
-        isBright={clockState.isBright}
-      />
+      <div className="my-auto w-full flex flex-col items-center">
+        <ColorClockDial
+          hueWheelGradient={clockState.hueWheelGradient}
+          brightnessRingGradient={clockState.brightnessRingGradient}
+          hourTicks={clockState.hourTicks}
+          hueOffsetTicks={clockState.hueOffsetTicks}
+          hourAngle={clockState.hourAngle}
+          minuteAngle={clockState.minuteAngle}
+          secondAngle={clockState.secondAngle}
+          hue={clockState.hue}
+          value={clockState.value}
+          isBright={clockState.isBright}
+        />
 
-      <ClockReadout
-        activeDate={activeDate}
-        hue={clockState.hue}
-        saturation={clockState.saturation}
-        value={clockState.value}
-        hex={clockState.hex}
-        rgb={clockState.rgb}
-        secondsSinceMidnight={clockState.secondsSinceMidnight}
-        isDebugActive={isDebugActive}
-        isSimulated={isSimulated}
-      />
+        <ClockReadout
+          activeDate={activeDate}
+          hue={clockState.hue}
+          saturation={clockState.saturation}
+          value={clockState.value}
+          hex={clockState.hex}
+          rgb={clockState.rgb}
+          secondsSinceMidnight={clockState.secondsSinceMidnight}
+          isDebugActive={isDebugActive}
+          isSimulated={isSimulated}
+        />
 
-      <WeekHueStrip
-        weekDays={clockState.weekDays}
-        isBright={clockState.isBright}
-        onSelectDayOffset={handleShiftDays}
-      />
+        <WeekHueStrip
+          weekDays={clockState.weekDays}
+          isBright={clockState.isBright}
+          onSelectDayOffset={handleShiftDays}
+        />
 
-      <TimeDebugControls
-        isOpen={isDebugOpen}
-        onToggleOpen={handleToggleDebugOpen}
-        activeDate={activeDate}
-        dayOfYear={clockState.dayOfYear}
-        secondsSinceMidnight={clockState.secondsSinceMidnight}
-        isSimulated={isSimulated}
-        isBright={clockState.isBright}
-        onScrubSeconds={handleScrubSeconds}
-        onScrubDayOfYear={handleScrubDayOfYear}
-        onJumpToMonthDay={handleJumpToMonthDay}
-        onShiftHours={handleShiftHours}
-        onShiftDays={handleShiftDays}
-        onReset={handleReset}
-      />
+        <TimeDebugControls
+          isOpen={isDebugOpen}
+          onToggleOpen={handleToggleDebugOpen}
+          activeDate={activeDate}
+          dayOfYear={clockState.dayOfYear}
+          secondsSinceMidnight={clockState.secondsSinceMidnight}
+          isSimulated={isSimulated}
+          isBright={clockState.isBright}
+          onScrubSeconds={handleScrubSeconds}
+          onScrubDayOfYear={handleScrubDayOfYear}
+          onJumpToMonthDay={handleJumpToMonthDay}
+          onShiftHours={handleShiftHours}
+          onShiftDays={handleShiftDays}
+          onReset={handleReset}
+        />
+      </div>
     </main>
   );
 }

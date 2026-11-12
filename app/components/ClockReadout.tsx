@@ -41,7 +41,7 @@ function ClockReadout({
 
   const hsvSummary = useMemo(
     () =>
-      `Hue ${hue.toFixed(1)}° • Sat ${saturation.toFixed(1)}% • Value ${value.toFixed(1)}%`,
+      `Hue ${hue.toFixed(0)}° • Sat ${saturation.toFixed(0)}% • Val ${value.toFixed(0)}%`,
     [hue, saturation, value],
   );
 
