@@ -101,7 +101,7 @@ export default function Time() {
   return (
     <main
       style={mainStyle}
-      className={`min-h-screen w-full flex flex-col items-center justify-center p-6 font-mono text-center transition-colors duration-500 ${textColorClass}`}
+      className={`min-h-dvh w-full flex flex-col items-center justify-center px-4 py-4 sm:p-6 font-mono text-center transition-colors duration-500 ${textColorClass}`}
     >
       <ColorClockDial
         hueWheelGradient={clockState.hueWheelGradient}
