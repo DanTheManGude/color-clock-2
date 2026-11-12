@@ -2,7 +2,10 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { CLOCK_CONFIG, ColorClock } from "../lib/colorClock";
-import { useLiveTimestamp } from "../hooks/useLiveTimestamp";
+import {
+  getCurrentTimestamp,
+  useLiveTimestamp,
+} from "../hooks/useLiveTimestamp";
 import { useWakeLock } from "../hooks/useWakeLock";
 import { useDynamicClockMetadata } from "../hooks/useDynamicClockMetadata";
 import ColorClockDial from "./ColorClockDial";
@@ -15,11 +18,7 @@ export default function Time() {
   const [offsetMs, setOffsetMs] = useState(0);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
 
-  // Keep screen awake while clock is open
   useWakeLock(true);
-
-  // Sync browser tab title, theme-color, and dynamic SVG favicon with live HSV color
-  useDynamicClockMetadata(timestamp, offsetMs);
 
   const activeDate = useMemo(
     () => new Date(timestamp + offsetMs),
@@ -30,6 +29,8 @@ export default function Time() {
     () => ColorClock.getClockState(activeDate),
     [activeDate],
   );
+
+  useDynamicClockMetadata(timestamp, activeDate, clockState);
 
   const isSimulated = offsetMs !== 0;
   const isDebugActive = isDebugOpen || isSimulated;
@@ -50,30 +51,33 @@ export default function Time() {
 
   const handleScrubSeconds = useCallback((targetSeconds: number) => {
     setOffsetMs((prev) => {
-      const currentActive = new Date(Date.now() + prev);
+      const baseTs = getCurrentTimestamp();
+      const currentActive = new Date(baseTs + prev);
       const targetDate = ColorClock.createDateAtSeconds(
         currentActive,
         targetSeconds,
       );
-      return prev + (targetDate.getTime() - currentActive.getTime());
+      return targetDate.getTime() - baseTs;
     });
   }, []);
 
   const handleScrubDayOfYear = useCallback((targetDayOfYear: number) => {
     setOffsetMs((prev) => {
-      const currentActive = new Date(Date.now() + prev);
+      const baseTs = getCurrentTimestamp();
+      const currentActive = new Date(baseTs + prev);
       const targetDate = ColorClock.createDateAtDayOfYear(
         currentActive,
         targetDayOfYear,
       );
-      return prev + (targetDate.getTime() - currentActive.getTime());
+      return targetDate.getTime() - baseTs;
     });
   }, []);
 
   const handleJumpToMonthDay = useCallback(
     (monthIndex: number, dayOfMonth: number) => {
       setOffsetMs((prev) => {
-        const currentActive = new Date(Date.now() + prev);
+        const baseTs = getCurrentTimestamp();
+        const currentActive = new Date(baseTs + prev);
         const targetDate = new Date(
           currentActive.getFullYear(),
           monthIndex,
@@ -82,7 +86,7 @@ export default function Time() {
           currentActive.getMinutes(),
           currentActive.getSeconds(),
         );
-        return prev + (targetDate.getTime() - currentActive.getTime());
+        return targetDate.getTime() - baseTs;
       });
     },
     [],
@@ -97,6 +101,14 @@ export default function Time() {
   const handleShiftDays = useCallback((deltaDays: number) => {
     setOffsetMs((prev) => prev + deltaDays * CLOCK_CONFIG.MS_PER_DAY);
   }, []);
+
+  if (timestamp === 0) {
+    return (
+      <main className="min-h-dvh w-full flex items-center justify-center bg-slate-900 text-white font-mono">
+        <div className="text-xl">Loading...</div>
+      </main>
+    );
+  }
 
   return (
     <main

@@ -10,6 +10,7 @@ export const CLOCK_CONFIG = {
   MAX_VALUE_PERCENT: 80,
   WEEK_SWATCH_VALUE_PERCENT: 65,
   LUMINANCE_CONTRAST_THRESHOLD: 0.179,
+  BEZEL_LUMINANCE_CONTRAST_THRESHOLD: 0.28,
   SECONDS_PER_MINUTE: 60,
   SECONDS_PER_HOUR: 3600,
   SECONDS_PER_HALF_DAY: 43200,
@@ -44,7 +45,36 @@ export interface HueOffsetTick {
   isBrightUnderneath: boolean;
 }
 
+// Precompute sRGB -> linear channel values (0..255) once at module load
+const SRGB_TO_LINEAR_LUT = Float64Array.from({ length: 256 }, (_, channel) => {
+  const srgb = channel / 255;
+  return srgb <= 0.03928 ? srgb / 12.92 : Math.pow((srgb + 0.055) / 1.055, 2.4);
+});
+
+const HUE_WHEEL_STOPS = Array.from(
+  { length: Math.floor(360 / CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG) + 1 },
+  (_, i) => (i * CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG) % 360,
+);
+
+const RELATIVE_DAY_SPECS = [
+  { label: "Yesterday", dayOffset: -1 },
+  { label: "Today", dayOffset: 0 },
+  { label: "Tomorrow", dayOffset: 1 },
+] as const;
+
 export class ColorClock {
+  // Lightweight memo caches so React.memo children skip re-renders when values don't change
+  private static cachedHourTicks: { key: string; value: HourTick[] } | null =
+    null;
+  private static cachedHueTicks: {
+    key: string;
+    value: HueOffsetTick[];
+  } | null = null;
+  private static cachedWeekSwatches: {
+    key: string;
+    value: WeekDaySwatch[];
+  } | null = null;
+
   /**
    * Computes a DST-safe day of the year index (0 on Jan 1, 1 on Jan 2, etc.).
    */
@@ -77,9 +107,8 @@ export class ColorClock {
 
     const year = date.getFullYear();
     const daysInYear = this.getDaysInYear(year);
-    const isLeapYear = daysInYear === 366;
     const summerSolsticeDay =
-      SUMMER_SOLSTICE_DAY_OF_YEAR + (isLeapYear ? 1 : 0);
+      SUMMER_SOLSTICE_DAY_OF_YEAR + (daysInYear === 366 ? 1 : 0);
 
     const fractionalDayOfYear =
       this.getDayOfYear(date) +
@@ -213,12 +242,8 @@ export class ColorClock {
    * Converts an RgbColor object (0-255 channels) into an uppercase #RRGGBB hex string.
    */
   static rgbToHex({ r, g, b }: RgbColor): string {
-    const toHex = (value: number) =>
-      Math.max(0, Math.min(255, Math.round(value)))
-        .toString(16)
-        .padStart(2, "0");
-
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+    const hexValue = ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff);
+    return `#${hexValue.toString(16).padStart(6, "0").toUpperCase()}`;
   }
 
   /**
@@ -230,36 +255,30 @@ export class ColorClock {
   }
 
   /**
-   * Computes WCAG relative luminance (0.0 -> 1.0) from an RgbColor.
+   * Computes WCAG relative luminance (0.0 -> 1.0) using the precomputed sRGB lookup table.
    */
   static getRelativeLuminance({ r, g, b }: RgbColor): number {
-    const toLinear = (channel: number) => {
-      const srgb = channel / 255;
-      return srgb <= 0.03928
-        ? srgb / 12.92
-        : Math.pow((srgb + 0.055) / 1.055, 2.4);
-    };
-
-    return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+    return (
+      0.2126 * SRGB_TO_LINEAR_LUT[r] +
+      0.7152 * SRGB_TO_LINEAR_LUT[g] +
+      0.0722 * SRGB_TO_LINEAR_LUT[b]
+    );
   }
 
   /**
    * Computes the 12 hour tick marks with per-tick contrast based on the grayscale
-   * HSV Value (S = 0%, V = 20%..80%) directly beneath each tick.
+   * HSV Value directly beneath each tick, returning a stable array reference when unchanged.
    */
   static getHourTicks(
     secondsSinceMidnight: number,
     hourAngle: number,
   ): HourTick[] {
     const normalizedHourAngle = ((hourAngle % 360) + 360) % 360;
-
-    return Array.from({ length: CLOCK_CONFIG.HOURS_ON_DIAL }, (_, i) => {
+    const ticks = Array.from({ length: CLOCK_CONFIG.HOURS_ON_DIAL }, (_, i) => {
       const angle = i * CLOCK_CONFIG.DEGREES_PER_HOUR;
-      // Signed angular distance from the hour hand in [-180°, +180°)
       const rawDelta = (((angle - normalizedHourAngle) % 360) + 360) % 360;
       const signedDeltaDeg = rawDelta >= 180 ? rawDelta - 360 : rawDelta;
 
-      // Convert angular offset on a 12h dial (30° = 1h) to seconds
       const offsetSeconds =
         (signedDeltaDeg / CLOCK_CONFIG.DEGREES_PER_HOUR) *
         CLOCK_CONFIG.SECONDS_PER_HOUR;
@@ -273,24 +292,34 @@ export class ColorClock {
       return {
         angle,
         isCardinal: angle % 90 === 0,
-        // Threshold ~0.28 (~56% gray) ensures dark ticks only render on genuinely bright gray
-        isBrightUnderneath: luminance > 0.28,
+        isBrightUnderneath:
+          luminance > CLOCK_CONFIG.BEZEL_LUMINANCE_CONTRAST_THRESHOLD,
       };
     });
+
+    const key = ticks.map((t) => (t.isBrightUnderneath ? "1" : "0")).join("");
+    if (this.cachedHourTicks?.key === key) {
+      return this.cachedHourTicks.value;
+    }
+
+    this.cachedHourTicks = { key, value: ticks };
+    return ticks;
   }
 
   /**
-   * Computes the 40° hue-offset ticks with per-tick perceptual contrast against the HSV color underneath.
+   * Computes the daily hue-offset ticks with per-tick perceptual contrast against the HSV color underneath,
+   * returning a stable array reference when unchanged.
    */
   static getHueOffsetTicks(
     dayOffset: number,
     value: number,
     saturation: number,
   ): HueOffsetTick[] {
-    const count = Math.floor(360 / CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG);
+    const stepDeg = CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG;
+    const count = Math.floor(360 / stepDeg);
 
-    return Array.from({ length: count }, (_, i) => {
-      const angle = i * CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG;
+    const ticks = Array.from({ length: count }, (_, i) => {
+      const angle = i * stepDeg;
       const hueAtTick = (((dayOffset + angle) % 360) + 360) % 360;
       const luminance = this.getRelativeLuminance(
         this.hsvToRgb(hueAtTick, saturation, value),
@@ -302,6 +331,14 @@ export class ColorClock {
           luminance > CLOCK_CONFIG.LUMINANCE_CONTRAST_THRESHOLD,
       };
     });
+
+    const key = `${stepDeg}:${ticks.map((t) => (t.isBrightUnderneath ? "1" : "0")).join("")}`;
+    if (this.cachedHueTicks?.key === key) {
+      return this.cachedHueTicks.value;
+    }
+
+    this.cachedHueTicks = { key, value: ticks };
+    return ticks;
   }
 
   /**
@@ -313,32 +350,30 @@ export class ColorClock {
     saturation: number,
   ): string {
     const wheelStartAngle = (360 - dayOffset) % 360;
-    const stops = [0, 60, 120, 180, 240, 300, 360]
-      .map((deg) => this.hsvToCssRgb(deg, saturation, value))
-      .join(", ");
-
+    const stops = HUE_WHEEL_STOPS.map((deg) =>
+      this.hsvToCssRgb(deg, saturation, value),
+    ).join(", ");
     return `conic-gradient(from ${wheelStartAngle}deg, ${stops})`;
   }
-
   /**
    * Builds the CSS conic-gradient string for the 12-hour rolling grayscale HSV Value ring,
-   * subtly feathering the ±6h boundary opposite the hour hand so -6h and +6h blend smoothly.
+   * feathering the ±6h seam opposite the hour hand so -6h and +6h blend smoothly.
    */
   static getBrightnessRingGradient(
     secondsSinceMidnight: number,
     hourAngle: number,
   ): string {
-    const steps = 48; // 15-minute resolution (7.5° per step) across 12 hours
+    const steps = 48;
+    const sixHoursSeconds = 6 * CLOCK_CONFIG.SECONDS_PER_HOUR;
     const minus6Value = this.getValueAtSecond(
-      secondsSinceMidnight - 6 * CLOCK_CONFIG.SECONDS_PER_HOUR,
+      secondsSinceMidnight - sixHoursSeconds,
     );
     const plus6Value = this.getValueAtSecond(
-      secondsSinceMidnight + 6 * CLOCK_CONFIG.SECONDS_PER_HOUR,
+      secondsSinceMidnight + sixHoursSeconds,
     );
-    const seamMidpointValue = (minus6Value + plus6Value) / 2;
-
+    const seamColor = this.hsvToCssRgb(0, 0, (minus6Value + plus6Value) / 2);
     const interiorStops = Array.from({ length: steps - 1 }, (_, idx) => {
-      const i = idx + 1; // 1 to 47 (7.5° to 352.5°), leaving 0° and 360° for the blended seam
+      const i = idx + 1;
       const offsetHours = -6 + (i / steps) * 12;
       const angleDeg = (i / steps) * 360;
       const stopValue = this.getValueAtSecond(
@@ -346,30 +381,21 @@ export class ColorClock {
       );
       return `${this.hsvToCssRgb(0, 0, stopValue)} ${angleDeg.toFixed(2)}deg`;
     });
-
-    const seamColor = this.hsvToCssRgb(0, 0, seamMidpointValue);
     const allStops = [
       `${seamColor} 0deg`,
       ...interiorStops,
       `${seamColor} 360deg`,
     ].join(", ");
-
     const normalizedHourAngle = ((hourAngle % 360) + 360) % 360;
     const ringStartAngle = (normalizedHourAngle + 180) % 360;
     return `conic-gradient(from ${ringStartAngle.toFixed(2)}deg, ${allStops})`;
   }
-
   /**
-   * Generates the 3-day swatch list (Yesterday, Today, Tomorrow) using the active HSV Value.
-   */
+• Generates the 3-day swatch list (Yesterday, Today, Tomorrow) using the active HSV Value,
+• returning a stable array reference when the rendered swatch colors haven't changed.
+*/
   static getWeekSwatches(date: Date, value: number): WeekDaySwatch[] {
-    const relativeDays = [
-      { label: "Yesterday", dayOffset: -1 },
-      { label: "Today", dayOffset: 0 },
-      { label: "Tomorrow", dayOffset: 1 },
-    ] as const;
-
-    return relativeDays.map(({ label, dayOffset }) => {
+    const swatches = RELATIVE_DAY_SPECS.map(({ label, dayOffset }) => {
       const dateForDay = new Date(
         date.getFullYear(),
         date.getMonth(),
@@ -381,7 +407,6 @@ export class ColorClock {
       const targetDayOfYear = this.getDayOfYear(dateForDay);
       const startingHue = this.getDailyStartingHue(targetDayOfYear);
       const saturation = this.getSeasonalSaturation(dateForDay);
-
       return {
         label,
         dayOffset,
@@ -390,13 +415,20 @@ export class ColorClock {
         backgroundColor: this.hsvToCssRgb(
           startingHue,
           saturation,
-          (value + CLOCK_CONFIG.WEEK_SWATCH_VALUE_PERCENT) / 2,
+          (value + CLOCK_CONFIG.WEEK_SWATCH_VALUE_PERCENT) / 2.0,
         ),
         isToday: dayOffset === 0,
       };
     });
+    const key = swatches
+      .map((s) => `${s.startingHue}:${s.backgroundColor}`)
+      .join("|");
+    if (this.cachedWeekSwatches?.key === key) {
+      return this.cachedWeekSwatches.value;
+    }
+    this.cachedWeekSwatches = { key, value: swatches };
+    return swatches;
   }
-
   /**
 • Computes all derived HSV visual and numeric values for a given Date.
 */

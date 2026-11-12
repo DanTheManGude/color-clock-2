@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export function useWakeLock(enabled: boolean = true) {
+export function useWakeLock(enabled: boolean = true): boolean {
   const [isActive, setIsActive] = useState(false);
 
   useEffect(() => {
@@ -17,22 +17,32 @@ export function useWakeLock(enabled: boolean = true) {
     let wakeLock: WakeLockSentinel | null = null;
     let isCancelled = false;
 
+    const handleRelease = () => {
+      wakeLock = null;
+      if (!isCancelled) {
+        setIsActive(false);
+      }
+    };
+
     const requestWakeLock = async () => {
+      // Skip if we already hold an active, unreleased sentinel
+      if (wakeLock && !wakeLock.released) return;
+
       try {
         const sentinel = await navigator.wakeLock.request("screen");
         if (isCancelled) {
           await sentinel.release();
           return;
         }
+
         wakeLock = sentinel;
         setIsActive(true);
-
-        sentinel.addEventListener("release", () => {
-          setIsActive(false);
-        });
+        sentinel.addEventListener("release", handleRelease);
       } catch {
         // Fails silently if battery saver is active or permission is denied
-        setIsActive(false);
+        if (!isCancelled) {
+          setIsActive(false);
+        }
       }
     };
 
@@ -49,12 +59,12 @@ export function useWakeLock(enabled: boolean = true) {
       isCancelled = true;
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       if (wakeLock) {
+        wakeLock.removeEventListener("release", handleRelease);
         wakeLock.release().catch(() => {});
         wakeLock = null;
       }
-      setIsActive(false);
     };
   }, [enabled]);
 
-  return isActive;
+  return enabled && isActive;
 }

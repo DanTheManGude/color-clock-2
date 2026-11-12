@@ -1,3 +1,4 @@
+import { memo, useCallback, useMemo } from "react";
 import { WeekDaySwatch } from "../lib/colorClock";
 
 interface WeekHueStripProps {
@@ -6,42 +7,81 @@ interface WeekHueStripProps {
   onSelectDayOffset: (deltaDays: number) => void;
 }
 
-export default function WeekHueStrip({
+interface SwatchButtonProps {
+  day: WeekDaySwatch;
+  baseBorderClass: string;
+  activeBorderClass: string;
+  onSelectDayOffset: (deltaDays: number) => void;
+}
+
+const SwatchButton = memo(function SwatchButton({
+  day,
+  baseBorderClass,
+  activeBorderClass,
+  onSelectDayOffset,
+}: SwatchButtonProps) {
+  const buttonStyle = useMemo(
+    () => ({ backgroundColor: day.backgroundColor }),
+    [day.backgroundColor],
+  );
+
+  const handleClick = useCallback(() => {
+    onSelectDayOffset(day.dayOffset);
+  }, [onSelectDayOffset, day.dayOffset]);
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      title={`Jump to ${day.label}`}
+      style={buttonStyle}
+      className={`flex flex-col items-center justify-center py-2.5 sm:py-3 px-3 rounded-xl text-white shadow-md transition-transform cursor-pointer ${
+        day.isToday
+          ? activeBorderClass
+          : `${baseBorderClass} opacity-90 hover:opacity-100`
+      }`}
+    >
+      <span className="text-xs font-bold uppercase tracking-wider drop-shadow-sm">
+        {day.label}
+      </span>
+      <span className="text-sm font-semibold mt-1 opacity-95 drop-shadow-sm">
+        {day.startingHue}°
+      </span>
+    </button>
+  );
+});
+
+function WeekHueStrip({
   weekDays,
   isBright,
   onSelectDayOffset,
 }: WeekHueStripProps) {
-  const baseBorderClass = isBright
-    ? "border border-slate-900/25"
-    : "border border-white/30";
+  const baseBorderClass = useMemo(
+    () => (isBright ? "border border-slate-900/25" : "border border-white/30"),
+    [isBright],
+  );
 
-  const activeBorderClass = isBright
-    ? "border border-slate-900/80 ring-2 ring-slate-900 scale-105"
-    : "border border-white/90 ring-2 ring-white scale-105";
+  const activeBorderClass = useMemo(
+    () =>
+      isBright
+        ? "border border-slate-900/80 ring-2 ring-slate-900 scale-105"
+        : "border border-white/90 ring-2 ring-white scale-105",
+    [isBright],
+  );
 
   return (
-    <div className="grid grid-cols-3 gap-3 w-full max-w-md mb-8">
+    <div className="grid grid-cols-3 gap-2.5 sm:gap-3 w-full max-w-md mb-5 sm:mb-8">
       {weekDays.map((day) => (
-        <button
+        <SwatchButton
           key={day.label}
-          type="button"
-          onClick={() => onSelectDayOffset(day.dayOffset)}
-          title={`Jump to ${day.label}`}
-          style={{ backgroundColor: day.backgroundColor }}
-          className={`flex flex-col items-center justify-center py-3 px-3 rounded-xl text-white shadow-md transition-transform cursor-pointer ${
-            day.isToday
-              ? activeBorderClass
-              : `${baseBorderClass} opacity-90 hover:opacity-100`
-          }`}
-        >
-          <span className="text-xs font-bold uppercase tracking-wider drop-shadow-sm">
-            {day.label}
-          </span>
-          <span className="text-sm font-semibold mt-1 opacity-95 drop-shadow-sm">
-            {day.startingHue}°
-          </span>
-        </button>
+          day={day}
+          baseBorderClass={baseBorderClass}
+          activeBorderClass={activeBorderClass}
+          onSelectDayOffset={onSelectDayOffset}
+        />
       ))}
     </div>
   );
 }
+
+export default memo(WeekHueStrip);

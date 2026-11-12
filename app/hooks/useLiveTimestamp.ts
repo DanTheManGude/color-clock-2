@@ -10,7 +10,7 @@ function subscribe(callback: () => void) {
 
 let currentTimestamp = 0;
 
-function getSnapshot(): number {
+export function getCurrentTimestamp(): number {
   const now = Date.now();
   if (
     Math.floor(now / CLOCK_CONFIG.UPDATE_INTERVAL_MS) !==
@@ -26,5 +26,9 @@ function getServerSnapshot(): number {
 }
 
 export function useLiveTimestamp(): number {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useSyncExternalStore(
+    subscribe,
+    getCurrentTimestamp,
+    getServerSnapshot,
+  );
 }
