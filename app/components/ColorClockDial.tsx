@@ -120,7 +120,7 @@ export default function ColorClockDial({
         </div>
 
         {/* Center Clock Pin */}
-        <div className={`w-4 h-4 rounded-full z-10 ${handColorClass}`} />
+        <div className={`w-3 h-3 rounded-full z-10 ${handColorClass}`} />
       </div>
     </div>
   );
