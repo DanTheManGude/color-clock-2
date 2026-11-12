@@ -195,7 +195,6 @@ export default function Time() {
 
       <WeekHueStrip
         weekDays={clockState.weekDays}
-        activeDayIndex={activeDate.getDay()}
         isBright={clockState.isBright}
         onSelectDayOffset={handleShiftDays}
       />

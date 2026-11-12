@@ -1,6 +1,6 @@
 export const CLOCK_CONFIG = {
   UPDATE_INTERVAL_MS: 1000,
-  DAILY_HUE_OFFSET_DEG: 45,
+  DAILY_HUE_OFFSET_DEG: 60,
   HOURS_ON_DIAL: 12,
   DEGREES_PER_HOUR: 30,
   MIN_SATURATION_PERCENT: 35,
@@ -26,6 +26,7 @@ export interface RgbColor {
 
 export interface WeekDaySwatch {
   label: string;
+  dayOffset: number;
   startingHue: number;
   saturation: number;
   backgroundColor: string;
@@ -353,17 +354,20 @@ export class ColorClock {
   }
 
   /**
-   * Generates the 7-day swatch list for the current week (Sun -> Sat) using the active HSV Value.
+   * Generates the 3-day swatch list (Yesterday, Today, Tomorrow) using the active HSV Value.
    */
   static getWeekSwatches(date: Date, value: number): WeekDaySwatch[] {
-    const currentDayOfWeek = date.getDay();
-    const resolvedValue = (CLOCK_CONFIG.WEEK_SWATCH_VALUE_PERCENT + value) / 2;
+    const relativeDays = [
+      { label: "Yesterday", dayOffset: -1 },
+      { label: "Today", dayOffset: 0 },
+      { label: "Tomorrow", dayOffset: 1 },
+    ] as const;
 
-    return CLOCK_CONFIG.DAY_LABELS.map((label, index) => {
+    return relativeDays.map(({ label, dayOffset }) => {
       const dateForDay = new Date(
         date.getFullYear(),
         date.getMonth(),
-        date.getDate() + (index - currentDayOfWeek),
+        date.getDate() + dayOffset,
         date.getHours(),
         date.getMinutes(),
         date.getSeconds(),
@@ -374,14 +378,11 @@ export class ColorClock {
 
       return {
         label,
+        dayOffset,
         startingHue,
         saturation,
-        backgroundColor: this.hsvToCssRgb(
-          startingHue,
-          saturation,
-          resolvedValue,
-        ),
-        isToday: index === currentDayOfWeek,
+        backgroundColor: this.hsvToCssRgb(startingHue, saturation, value),
+        isToday: dayOffset === 0,
       };
     });
   }
