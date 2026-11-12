@@ -1,41 +1,17 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
 import { CLOCK_CONFIG, ColorClock } from "../lib/colorClock";
+import { useLiveTimestamp } from "../hooks/useLiveTimestamp";
 import { useWakeLock } from "../hooks/useWakeLock";
 import { useDynamicClockMetadata } from "../hooks/useDynamicClockMetadata";
 import ColorClockDial from "./ColorClockDial";
+import ClockReadout from "./ClockReadout";
 import WeekHueStrip from "./WeekHueStrip";
 import TimeDebugControls from "./TimeDebugControls";
 
-function subscribe(callback: () => void) {
-  const timer = setInterval(callback, CLOCK_CONFIG.UPDATE_INTERVAL_MS);
-  return () => clearInterval(timer);
-}
-
-let currentTimestamp = 0;
-
-function getSnapshot(): number {
-  const now = Date.now();
-  if (
-    Math.floor(now / CLOCK_CONFIG.UPDATE_INTERVAL_MS) !==
-    Math.floor(currentTimestamp / CLOCK_CONFIG.UPDATE_INTERVAL_MS)
-  ) {
-    currentTimestamp = now;
-  }
-  return currentTimestamp;
-}
-
-function getServerSnapshot(): number {
-  return 0;
-}
-
 export default function Time() {
-  const timestamp = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  );
+  const timestamp = useLiveTimestamp();
   const [offsetMs, setOffsetMs] = useState(0);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
 
@@ -108,37 +84,17 @@ export default function Time() {
         isBright={clockState.isBright}
       />
 
-      {/* Digital Date & Time Readout */}
-      <div className="text-lg font-semibold uppercase tracking-widest opacity-80 mb-1">
-        {activeDate.toLocaleDateString([], {
-          weekday: "long",
-          month: "short",
-          day: "numeric",
-        })}
-      </div>
-      <div className="text-5xl font-bold mb-3">
-        {activeDate.toLocaleTimeString()}
-      </div>
-
-      {/* Primary Hue / Seasonal Saturation / Value Summary */}
-      <div className="text-xl opacity-90 mb-1">
-        {`Hue ${clockState.hue.toFixed(1)}° • Sat ${clockState.saturation.toFixed(1)}% • Value ${clockState.value.toFixed(1)}%`}
-      </div>
-
-      {/* Live RGB Readout */}
-      <div
-        className={`text-base opacity-85 ${isDebugActive ? "mb-2" : "mb-8"}`}
-      >
-        {`RGB(${clockState.rgb.r}, ${clockState.rgb.g}, ${clockState.rgb.b}) — ${clockState.hex}`}
-      </div>
-
-      {/* Debug-Only Seconds Today Readout */}
-      {isDebugActive && (
-        <div className="text-sm opacity-75 mb-8">
-          Seconds today: {clockState.secondsSinceMidnight}s
-          {isSimulated && " • (Simulated)"}
-        </div>
-      )}
+      <ClockReadout
+        activeDate={activeDate}
+        hue={clockState.hue}
+        saturation={clockState.saturation}
+        value={clockState.value}
+        hex={clockState.hex}
+        rgb={clockState.rgb}
+        secondsSinceMidnight={clockState.secondsSinceMidnight}
+        isDebugActive={isDebugActive}
+        isSimulated={isSimulated}
+      />
 
       <WeekHueStrip
         weekDays={clockState.weekDays}
