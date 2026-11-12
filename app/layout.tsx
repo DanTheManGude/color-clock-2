@@ -15,6 +15,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Color Clock",
   description: "Clock that changes color with the time",
+  openGraph: {
+    title: "Color Clock",
+    description: "Clock that changes color with the time",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Color Clock",
+    description: "Clock that changes color with the time",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
