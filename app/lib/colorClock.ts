@@ -434,7 +434,7 @@ export class ColorClock {
       rgb,
       hex,
       isBright,
-      backgroundColor: hex,
+      backgroundColor: "#151515",
       hueWheelGradient: this.getHueWheelGradient(dayOffset, value, saturation),
       brightnessRingGradient: this.getBrightnessRingGradient(
         secondsSinceMidnight,
