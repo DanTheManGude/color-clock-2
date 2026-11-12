@@ -381,7 +381,11 @@ export class ColorClock {
         dayOffset,
         startingHue,
         saturation,
-        backgroundColor: this.hsvToCssRgb(startingHue, saturation, value),
+        backgroundColor: this.hsvToCssRgb(
+          startingHue,
+          saturation,
+          (value + CLOCK_CONFIG.WEEK_SWATCH_VALUE_PERCENT) / 2,
+        ),
         isToday: dayOffset === 0,
       };
     });
