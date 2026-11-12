@@ -76,7 +76,7 @@ function ClockReadout({
 
       {/* Debug-Only Seconds Today Readout */}
       {isDebugActive && (
-        <div className="text-sm opacity-75 mb-8">{debugSummary}</div>
+        <div className="text-sm opacity-75 mb-6">{debugSummary}</div>
       )}
     </>
   );
