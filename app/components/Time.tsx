@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { CLOCK_CONFIG, ColorClock } from "../lib/colorClock";
 import { useLiveTimestamp } from "../hooks/useLiveTimestamp";
 import { useWakeLock } from "../hooks/useWakeLock";
@@ -21,55 +21,86 @@ export default function Time() {
   // Sync browser tab title, theme-color, and dynamic SVG favicon with live HSV color
   useDynamicClockMetadata(timestamp, offsetMs);
 
-  const realDate = new Date(timestamp);
-  const activeDate = new Date(timestamp + offsetMs);
-  const clockState = ColorClock.getClockState(activeDate);
+  const activeDate = useMemo(
+    () => new Date(timestamp + offsetMs),
+    [timestamp, offsetMs],
+  );
+
+  const clockState = useMemo(
+    () => ColorClock.getClockState(activeDate),
+    [activeDate],
+  );
 
   const isSimulated = offsetMs !== 0;
   const isDebugActive = isDebugOpen || isSimulated;
   const textColorClass = clockState.isBright ? "text-slate-900" : "text-white";
 
-  const handleScrubSeconds = (targetSeconds: number) => {
-    const targetDate = ColorClock.createDateAtSeconds(
-      activeDate,
-      targetSeconds,
-    );
-    setOffsetMs(targetDate.getTime() - realDate.getTime());
-  };
+  const mainStyle = useMemo(
+    () => ({ backgroundColor: clockState.backgroundColor }),
+    [clockState.backgroundColor],
+  );
 
-  const handleScrubDayOfYear = (targetDayOfYear: number) => {
-    const targetDate = ColorClock.createDateAtDayOfYear(
-      activeDate,
-      targetDayOfYear,
-    );
-    setOffsetMs(targetDate.getTime() - realDate.getTime());
-  };
+  const handleToggleDebugOpen = useCallback(() => {
+    setIsDebugOpen((open) => !open);
+  }, []);
 
-  const handleJumpToMonthDay = (monthIndex: number, dayOfMonth: number) => {
-    const targetDate = new Date(
-      activeDate.getFullYear(),
-      monthIndex,
-      dayOfMonth,
-      activeDate.getHours(),
-      activeDate.getMinutes(),
-      activeDate.getSeconds(),
-    );
-    setOffsetMs(targetDate.getTime() - realDate.getTime());
-  };
+  const handleReset = useCallback(() => {
+    setOffsetMs(0);
+  }, []);
 
-  const handleShiftHours = (deltaHours: number) => {
+  const handleScrubSeconds = useCallback((targetSeconds: number) => {
+    setOffsetMs((prev) => {
+      const currentActive = new Date(Date.now() + prev);
+      const targetDate = ColorClock.createDateAtSeconds(
+        currentActive,
+        targetSeconds,
+      );
+      return prev + (targetDate.getTime() - currentActive.getTime());
+    });
+  }, []);
+
+  const handleScrubDayOfYear = useCallback((targetDayOfYear: number) => {
+    setOffsetMs((prev) => {
+      const currentActive = new Date(Date.now() + prev);
+      const targetDate = ColorClock.createDateAtDayOfYear(
+        currentActive,
+        targetDayOfYear,
+      );
+      return prev + (targetDate.getTime() - currentActive.getTime());
+    });
+  }, []);
+
+  const handleJumpToMonthDay = useCallback(
+    (monthIndex: number, dayOfMonth: number) => {
+      setOffsetMs((prev) => {
+        const currentActive = new Date(Date.now() + prev);
+        const targetDate = new Date(
+          currentActive.getFullYear(),
+          monthIndex,
+          dayOfMonth,
+          currentActive.getHours(),
+          currentActive.getMinutes(),
+          currentActive.getSeconds(),
+        );
+        return prev + (targetDate.getTime() - currentActive.getTime());
+      });
+    },
+    [],
+  );
+
+  const handleShiftHours = useCallback((deltaHours: number) => {
     setOffsetMs(
       (prev) => prev + deltaHours * CLOCK_CONFIG.SECONDS_PER_HOUR * 1000,
     );
-  };
+  }, []);
 
-  const handleShiftDays = (deltaDays: number) => {
+  const handleShiftDays = useCallback((deltaDays: number) => {
     setOffsetMs((prev) => prev + deltaDays * CLOCK_CONFIG.MS_PER_DAY);
-  };
+  }, []);
 
   return (
     <main
-      style={{ backgroundColor: clockState.backgroundColor }}
+      style={mainStyle}
       className={`min-h-screen w-full flex flex-col items-center justify-center p-6 font-mono text-center transition-colors duration-500 ${textColorClass}`}
     >
       <ColorClockDial
@@ -104,7 +135,7 @@ export default function Time() {
 
       <TimeDebugControls
         isOpen={isDebugOpen}
-        onToggleOpen={() => setIsDebugOpen((open) => !open)}
+        onToggleOpen={handleToggleDebugOpen}
         activeDate={activeDate}
         dayOfYear={clockState.dayOfYear}
         secondsSinceMidnight={clockState.secondsSinceMidnight}
@@ -115,7 +146,7 @@ export default function Time() {
         onJumpToMonthDay={handleJumpToMonthDay}
         onShiftHours={handleShiftHours}
         onShiftDays={handleShiftDays}
-        onReset={() => setOffsetMs(0)}
+        onReset={handleReset}
       />
     </main>
   );
