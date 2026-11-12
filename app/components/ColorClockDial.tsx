@@ -25,8 +25,9 @@ export default function ColorClockDial({
   value,
   isBright,
 }: ColorClockDialProps) {
-  const handColorClass = isBright ? "bg-slate-800" : "bg-slate-100";
-  const secondHandClass = isBright ? "bg-slate-800/75" : "bg-slate-100/80";
+  const handColorClass = isBright ? "bg-slate-800/85" : "bg-slate-100/85";
+  const secondHandClass = isBright ? "bg-slate-800/65" : "bg-slate-100/65";
+  const pinColorClass = isBright ? "bg-slate-800/90" : "bg-slate-100/90";
 
   const ringOutlineColor = isBright
     ? "rgba(15, 23, 42, 0.25)"
@@ -120,7 +121,7 @@ export default function ColorClockDial({
         </div>
 
         {/* Center Clock Pin */}
-        <div className={`w-3 h-3 rounded-full z-10 ${handColorClass}`} />
+        <div className={`w-3 h-3 rounded-full z-10 ${pinColorClass}`} />
       </div>
     </div>
   );
