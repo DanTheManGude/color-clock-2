@@ -4,19 +4,47 @@ import { useSyncExternalStore } from "react";
 import { CLOCK_CONFIG } from "../lib/colorClock";
 
 function subscribe(callback: () => void) {
-  const timer = setInterval(callback, CLOCK_CONFIG.UPDATE_INTERVAL_MS);
-  return () => clearInterval(timer);
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const scheduleNextTick = () => {
+    clearTimeout(timeoutId);
+    const now = Date.now();
+    // Exact milliseconds remaining until the start of the next wall-clock second (.000ms)
+    const msUntilNextSecond =
+      CLOCK_CONFIG.UPDATE_INTERVAL_MS - (now % CLOCK_CONFIG.UPDATE_INTERVAL_MS);
+
+    timeoutId = setTimeout(() => {
+      callback();
+      scheduleNextTick();
+    }, msUntilNextSecond);
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "visible") {
+      callback();
+      scheduleNextTick();
+    }
+  };
+
+  scheduleNextTick();
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  return () => {
+    clearTimeout(timeoutId);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+  };
 }
 
 let currentTimestamp = 0;
 
 export function getCurrentTimestamp(): number {
   const now = Date.now();
-  if (
-    Math.floor(now / CLOCK_CONFIG.UPDATE_INTERVAL_MS) !==
-    Math.floor(currentTimestamp / CLOCK_CONFIG.UPDATE_INTERVAL_MS)
-  ) {
-    currentTimestamp = now;
+  const flooredSecond =
+    Math.floor(now / CLOCK_CONFIG.UPDATE_INTERVAL_MS) *
+    CLOCK_CONFIG.UPDATE_INTERVAL_MS;
+
+  if (flooredSecond !== currentTimestamp) {
+    currentTimestamp = flooredSecond;
   }
   return currentTimestamp;
 }
