@@ -204,14 +204,14 @@ function TimeDebugControls({
     () =>
       isBright
         ? "bg-slate-900/10 border-slate-900/20"
-        : "bg-white/10 border-white/20",
+        : "bg-slate-100/10 border-slate-100/20",
     [isBright],
   );
   const buttonBgClass = useMemo(
     () =>
       isBright
         ? "bg-slate-900/15 hover:bg-slate-900/25"
-        : "bg-white/15 hover:bg-white/25",
+        : "bg-slate-100/15 hover:bg-slate-100/25",
     [isBright],
   );
 

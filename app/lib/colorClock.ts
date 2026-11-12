@@ -3,13 +3,13 @@ export const CLOCK_CONFIG = {
   DAILY_HUE_OFFSET_DEG: 60,
   HOURS_ON_DIAL: 12,
   DEGREES_PER_HOUR: 30,
-  MIN_SATURATION_PERCENT: 35,
-  MAX_SATURATION_PERCENT: 95,
+  MIN_SATURATION_PERCENT: 27,
+  MAX_SATURATION_PERCENT: 87,
   SUMMER_SOLSTICE_DAY_OF_YEAR: 171, // June 21 (0-indexed)
   MIN_VALUE_PERCENT: 20,
   MAX_VALUE_PERCENT: 80,
   WEEK_SWATCH_VALUE_PERCENT: 65,
-  LUMINANCE_CONTRAST_THRESHOLD: 0.179,
+  LUMINANCE_CONTRAST_THRESHOLD: 0.179, // WCAG
   BEZEL_LUMINANCE_CONTRAST_THRESHOLD: 0.28,
   SECONDS_PER_MINUTE: 60,
   SECONDS_PER_HOUR: 3600,
@@ -31,6 +31,7 @@ export interface WeekDaySwatch {
   startingHue: number;
   saturation: number;
   backgroundColor: string;
+  isBright: boolean;
   isToday: boolean;
 }
 
@@ -250,7 +251,14 @@ export class ColorClock {
    * Converts HSV directly to a CSS rgb(r, g, b) string.
    */
   static hsvToCssRgb(h: number, s: number, v: number): string {
-    const { r, g, b } = this.hsvToRgb(h, s, v);
+    const rgb = this.hsvToRgb(h, s, v);
+    return this.rbgToCss(rgb);
+  }
+
+  /**
+   * Converts RGB Color directly to a CSS rgb(r, g, b) string.
+   */
+  static rbgToCss({ r, g, b }: RgbColor): string {
     return `rgb(${r}, ${g}, ${b})`;
   }
 
@@ -390,10 +398,11 @@ export class ColorClock {
     const ringStartAngle = (normalizedHourAngle + 180) % 360;
     return `conic-gradient(from ${ringStartAngle.toFixed(2)}deg, ${allStops})`;
   }
+
   /**
-• Generates the 3-day swatch list (Yesterday, Today, Tomorrow) using the active HSV Value,
-• returning a stable array reference when the rendered swatch colors haven't changed.
-*/
+   * Generates the 3-day swatch list (Yesterday, Today, Tomorrow) using the active HSV Value,
+   * returning a stable array reference when the rendered swatch colors haven't changed.
+   */
   static getWeekSwatches(date: Date, value: number): WeekDaySwatch[] {
     const swatches = RELATIVE_DAY_SPECS.map(({ label, dayOffset }) => {
       const dateForDay = new Date(
@@ -407,28 +416,36 @@ export class ColorClock {
       const targetDayOfYear = this.getDayOfYear(dateForDay);
       const startingHue = this.getDailyStartingHue(targetDayOfYear);
       const saturation = this.getSeasonalSaturation(dateForDay);
+      const rgb = this.hsvToRgb(
+        startingHue,
+        saturation,
+        (value + CLOCK_CONFIG.WEEK_SWATCH_VALUE_PERCENT) / 2.0,
+      );
+
       return {
         label,
         dayOffset,
         startingHue,
         saturation,
-        backgroundColor: this.hsvToCssRgb(
-          startingHue,
-          saturation,
-          (value + CLOCK_CONFIG.WEEK_SWATCH_VALUE_PERCENT) / 2.0,
-        ),
+        backgroundColor: this.rbgToCss(rgb),
+        isBright:
+          this.getRelativeLuminance(rgb) >
+          CLOCK_CONFIG.LUMINANCE_CONTRAST_THRESHOLD,
         isToday: dayOffset === 0,
       };
     });
+
     const key = swatches
-      .map((s) => `${s.startingHue}:${s.backgroundColor}`)
+      .map((s) => `${s.startingHue}:${s.backgroundColor}:${s.isBright ? 1 : 0}`)
       .join("|");
     if (this.cachedWeekSwatches?.key === key) {
       return this.cachedWeekSwatches.value;
     }
+
     this.cachedWeekSwatches = { key, value: swatches };
     return swatches;
   }
+
   /**
 • Computes all derived HSV visual and numeric values for a given Date.
 */

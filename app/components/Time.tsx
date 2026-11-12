@@ -34,7 +34,9 @@ export default function Time() {
 
   const isSimulated = offsetMs !== 0;
   const isDebugActive = isDebugOpen || isSimulated;
-  const textColorClass = clockState.isBright ? "text-slate-900" : "text-white";
+  const textColorClass = clockState.isBright
+    ? "text-slate-900"
+    : "text-slate-100";
 
   const mainStyle = useMemo(
     () => ({ backgroundColor: clockState.backgroundColor }),
@@ -104,7 +106,7 @@ export default function Time() {
 
   if (timestamp === 0) {
     return (
-      <main className="min-h-dvh w-full flex items-center justify-center bg-slate-900 text-white font-mono">
+      <main className="min-h-dvh w-full flex items-center justify-center bg-slate-900 text-slate-100 font-mono">
         <div className="text-xl">Loading...</div>
       </main>
     );

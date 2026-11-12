@@ -43,7 +43,7 @@ const HourTickLayer = memo(function HourTickLayer({
       {hourTicks.map(({ angle, isCardinal, isBrightUnderneath }) => {
         const tickContrastClass = isBrightUnderneath
           ? "bg-slate-900/85"
-          : "bg-white/90";
+          : "bg-slate-100/90";
 
         return (
           <div
@@ -73,7 +73,7 @@ const HueTickLayer = memo(function HueTickLayer({
       {hueOffsetTicks.map(({ angle, isBrightUnderneath }) => {
         const hueTickContrastClass = isBrightUnderneath
           ? "bg-slate-900/70"
-          : "bg-white/80";
+          : "bg-slate-100/80";
 
         return (
           <div

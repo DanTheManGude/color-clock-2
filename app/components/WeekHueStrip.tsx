@@ -35,7 +35,9 @@ const SwatchButton = memo(function SwatchButton({
       onClick={handleClick}
       title={`Jump to ${day.label}`}
       style={buttonStyle}
-      className={`flex flex-col items-center justify-center py-2.5 sm:py-3 px-3 rounded-xl text-white shadow-md transition-transform cursor-pointer ${
+      className={`flex flex-col items-center justify-center py-2.5 sm:py-3 px-3 rounded-xl shadow-md transition-transform cursor-pointer ${
+        day.isBright ? "text-slate-900" : "text-slate-100"
+      } ${
         day.isToday
           ? activeBorderClass
           : `${baseBorderClass} opacity-90 hover:opacity-100`
@@ -57,7 +59,8 @@ function WeekHueStrip({
   onSelectDayOffset,
 }: WeekHueStripProps) {
   const baseBorderClass = useMemo(
-    () => (isBright ? "border border-slate-900/25" : "border border-white/30"),
+    () =>
+      isBright ? "border border-slate-900/25" : "border border-slate-100/30",
     [isBright],
   );
 
@@ -65,7 +68,7 @@ function WeekHueStrip({
     () =>
       isBright
         ? "border border-slate-900/80 ring-2 ring-slate-900 scale-105"
-        : "border border-white/90 ring-2 ring-white scale-105",
+        : "border border-slate-100/90 ring-2 ring-slate-100 scale-105",
     [isBright],
   );
 
