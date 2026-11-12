@@ -17,22 +17,20 @@ export function useDynamicClockMetadata(timestamp: number, offsetMs: number) {
     });
     document.title = `${formattedTime} • ${Math.round(clockState.hue)}° Color Clock`;
 
-    // 2. Update or create dedicated theme-color meta tag
-    let themeMeta = document.querySelector<HTMLMetaElement>(
-      'meta[name="theme-color"][data-dynamic="true"]',
-    );
-    if (!themeMeta) {
-      document
-        .querySelectorAll('meta[name="theme-color"]')
-        .forEach((el) => el.remove());
-      themeMeta = document.createElement("meta");
-      themeMeta.name = "theme-color";
-      themeMeta.dataset.dynamic = "true";
-      document.head.appendChild(themeMeta);
-    }
-    themeMeta.content = clockState.backgroundColor;
+    // 2. Sync root <html> and <body> backgrounds so Safari & iOS overscroll/chrome sample the live color
+    document.documentElement.style.backgroundColor = clockState.backgroundColor;
+    document.body.style.backgroundColor = clockState.backgroundColor;
 
-    // 3. Draw live clock icon onto a 64x64 Canvas
+    // 3. Replace <meta name="theme-color"> so Safari & mobile Chrome force a toolbar repaint
+    document
+      .querySelectorAll('meta[name="theme-color"]')
+      .forEach((el) => el.remove());
+    const themeMeta = document.createElement("meta");
+    themeMeta.name = "theme-color";
+    themeMeta.content = clockState.backgroundColor;
+    document.head.appendChild(themeMeta);
+
+    // 4. Draw live clock icon onto a 64x64 Canvas
     const canvas = document.createElement("canvas");
     canvas.width = 64;
     canvas.height = 64;
