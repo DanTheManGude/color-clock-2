@@ -251,11 +251,17 @@ export class ColorClock {
     secondsSinceMidnight: number,
     hourAngle: number,
   ): HourTick[] {
+    const normalizedHourAngle = ((hourAngle % 360) + 360) % 360;
+
     return Array.from({ length: CLOCK_CONFIG.HOURS_ON_DIAL }, (_, i) => {
       const angle = i * CLOCK_CONFIG.DEGREES_PER_HOUR;
-      const deltaDeg = ((angle - hourAngle + 540) % 360) - 180;
+      // Signed angular distance from the hour hand in [-180°, +180°)
+      const rawDelta = (((angle - normalizedHourAngle) % 360) + 360) % 360;
+      const signedDeltaDeg = rawDelta >= 180 ? rawDelta - 360 : rawDelta;
+
+      // Convert angular offset on a 12h dial (30° = 1h) to seconds
       const offsetSeconds =
-        (deltaDeg / CLOCK_CONFIG.DEGREES_PER_HOUR) *
+        (signedDeltaDeg / CLOCK_CONFIG.DEGREES_PER_HOUR) *
         CLOCK_CONFIG.SECONDS_PER_HOUR;
       const valueAtTick = this.getValueAtSecond(
         secondsSinceMidnight + offsetSeconds,
@@ -267,8 +273,8 @@ export class ColorClock {
       return {
         angle,
         isCardinal: angle % 90 === 0,
-        isBrightUnderneath:
-          luminance > CLOCK_CONFIG.LUMINANCE_CONTRAST_THRESHOLD,
+        // Threshold ~0.28 (~56% gray) ensures dark ticks only render on genuinely bright gray
+        isBrightUnderneath: luminance > 0.28,
       };
     });
   }
