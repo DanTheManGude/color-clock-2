@@ -12,6 +12,7 @@ interface TimeDebugControlsProps {
   onScrubSeconds: (targetSeconds: number) => void;
   onScrubDayOfYear: (targetDayOfYear: number) => void;
   onJumpToMonthDay: (monthIndex: number, dayOfMonth: number) => void;
+  onShiftMinutes: (deltaMinutes: number) => void;
   onShiftHours: (deltaHours: number) => void;
   onShiftDays: (deltaDays: number) => void;
   onReset: () => void;
@@ -36,6 +37,7 @@ interface DebugDrawerProps {
   onScrubSeconds: (targetSeconds: number) => void;
   onScrubDayOfYear: (targetDayOfYear: number) => void;
   onJumpToMonthDay: (monthIndex: number, dayOfMonth: number) => void;
+  onShiftMinutes: (deltaMinutes: number) => void;
   onShiftHours: (deltaHours: number) => void;
   onShiftDays: (deltaDays: number) => void;
 }
@@ -49,6 +51,7 @@ const DebugDrawer = memo(function DebugDrawer({
   onScrubSeconds,
   onScrubDayOfYear,
   onJumpToMonthDay,
+  onShiftMinutes,
   onShiftHours,
   onShiftDays,
 }: DebugDrawerProps) {
@@ -80,6 +83,14 @@ const DebugDrawer = memo(function DebugDrawer({
     [onScrubDayOfYear],
   );
 
+  const handleMinus10Min = useCallback(
+    () => onShiftMinutes(-10),
+    [onShiftMinutes],
+  );
+  const handlePlus10Min = useCallback(
+    () => onShiftMinutes(10),
+    [onShiftMinutes],
+  );
   const handleMinusHour = useCallback(() => onShiftHours(-1), [onShiftHours]);
   const handlePlusHour = useCallback(() => onShiftHours(1), [onShiftHours]);
   const handleMinusDay = useCallback(() => onShiftDays(-1), [onShiftDays]);
@@ -153,6 +164,20 @@ const DebugDrawer = memo(function DebugDrawer({
         <div className="flex flex-wrap gap-1.5">
           <button
             type="button"
+            onClick={handleMinus10Min}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
+          >
+            -10 Min
+          </button>
+          <button
+            type="button"
+            onClick={handlePlus10Min}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
+          >
+            +10 Min
+          </button>
+          <button
+            type="button"
             onClick={handleMinusHour}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
           >
@@ -196,6 +221,7 @@ function TimeDebugControls({
   onScrubSeconds,
   onScrubDayOfYear,
   onJumpToMonthDay,
+  onShiftMinutes,
   onShiftHours,
   onShiftDays,
   onReset,
@@ -246,6 +272,7 @@ function TimeDebugControls({
           onScrubSeconds={onScrubSeconds}
           onScrubDayOfYear={onScrubDayOfYear}
           onJumpToMonthDay={onJumpToMonthDay}
+          onShiftMinutes={onShiftMinutes}
           onShiftHours={onShiftHours}
           onShiftDays={onShiftDays}
         />

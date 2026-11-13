@@ -93,6 +93,12 @@ export default function Time() {
     [],
   );
 
+  const handleShiftMinutes = useCallback((deltaMinutes: number) => {
+    setOffsetMs(
+      (prev) => prev + deltaMinutes * CLOCK_CONFIG.SECONDS_PER_MINUTE * 1000,
+    );
+  }, []);
+
   const handleShiftHours = useCallback((deltaHours: number) => {
     setOffsetMs(
       (prev) => prev + deltaHours * CLOCK_CONFIG.SECONDS_PER_HOUR * 1000,
@@ -152,6 +158,7 @@ export default function Time() {
           onScrubSeconds={handleScrubSeconds}
           onScrubDayOfYear={handleScrubDayOfYear}
           onJumpToMonthDay={handleJumpToMonthDay}
+          onShiftMinutes={handleShiftMinutes}
           onShiftHours={handleShiftHours}
           onShiftDays={handleShiftDays}
           onReset={handleReset}
