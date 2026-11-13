@@ -51,9 +51,8 @@ function ClockReadout({
   );
 
   const debugSummary = useMemo(
-    () =>
-      `Seconds today: ${secondsSinceMidnight}s${isSimulated ? " • (Simulated)" : ""}`,
-    [secondsSinceMidnight, isSimulated],
+    () => (isSimulated ? "(Simulated)" : ""),
+    [isSimulated],
   );
 
   return (

@@ -5,7 +5,6 @@ interface ColorClockDialProps {
   hueWheelGradient: string;
   brightnessRingGradient: string;
   hourTicks: HourTick[];
-  hueOffsetTicks: HueOffsetTick[];
   hourAngle: number;
   minuteAngle: number;
   secondAngle: number;
@@ -19,16 +18,6 @@ const STATIC_HOUR_ROTATIONS: Record<number, { transform: string }> =
   Object.fromEntries(
     Array.from({ length: CLOCK_CONFIG.HOURS_ON_DIAL }, (_, i) => {
       const deg = i * CLOCK_CONFIG.DEGREES_PER_HOUR;
-      return [deg, { transform: `rotate(${deg}deg)` }];
-    }),
-  );
-
-// Precompute static hue-offset rotation styles dynamically from CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG
-const HUE_TICK_STEP = CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG;
-const STATIC_HUE_ROTATIONS: Record<number, { transform: string }> =
-  Object.fromEntries(
-    Array.from({ length: Math.floor(360 / HUE_TICK_STEP) }, (_, i) => {
-      const deg = i * HUE_TICK_STEP;
       return [deg, { transform: `rotate(${deg}deg)` }];
     }),
   );
@@ -63,39 +52,10 @@ const HourTickLayer = memo(function HourTickLayer({
   );
 });
 
-const HueTickLayer = memo(function HueTickLayer({
-  hueOffsetTicks,
-}: {
-  hueOffsetTicks: HueOffsetTick[];
-}) {
-  return (
-    <>
-      {hueOffsetTicks.map(({ angle, isBrightUnderneath }) => {
-        const hueTickContrastClass = isBrightUnderneath
-          ? "bg-slate-900/70"
-          : "bg-slate-100/80";
-
-        return (
-          <div
-            key={`hue-${angle}`}
-            style={STATIC_HUE_ROTATIONS[angle]}
-            className="absolute inset-0 flex justify-center pointer-events-none"
-          >
-            <div
-              className={`w-0.5 h-2.5 mt-1 rounded-full transition-colors duration-500 ${hueTickContrastClass}`}
-            />
-          </div>
-        );
-      })}
-    </>
-  );
-});
-
 function ColorClockDial({
   hueWheelGradient,
   brightnessRingGradient,
   hourTicks,
-  hueOffsetTicks,
   hourAngle,
   minuteAngle,
   secondAngle,
@@ -170,8 +130,6 @@ function ColorClockDial({
         style={innerWheelStyle}
         className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center"
       >
-        <HueTickLayer hueOffsetTicks={hueOffsetTicks} />
-
         {/* Hour Hand (Short & Thick) */}
         <div
           style={hourHandStyle}

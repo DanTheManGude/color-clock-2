@@ -1,8 +1,9 @@
 export const CLOCK_CONFIG = {
   UPDATE_INTERVAL_MS: 1000,
-  DAILY_HUE_OFFSET_DEG: 60,
+  STARTING_HUE: 0,
+  HUE_OFFSET_DEG: 30,
   HOURS_ON_DIAL: 12,
-  DEGREES_PER_HOUR: 30,
+  DEGREES_PER_HOUR: 360 / 12,
   MIN_SATURATION_PERCENT: 27,
   MAX_SATURATION_PERCENT: 87,
   SUMMER_SOLSTICE_DAY_OF_YEAR: 171, // June 21 (0-indexed)
@@ -53,28 +54,14 @@ const SRGB_TO_LINEAR_LUT = Float64Array.from({ length: 256 }, (_, channel) => {
 });
 
 const HUE_WHEEL_STOPS = Array.from(
-  { length: Math.floor(360 / CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG) + 1 },
-  (_, i) => (i * CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG) % 360,
+  { length: Math.floor(360 / CLOCK_CONFIG.HUE_OFFSET_DEG) + 1 },
+  (_, i) => (i * CLOCK_CONFIG.HUE_OFFSET_DEG) % 360,
 );
-
-const RELATIVE_DAY_SPECS = [
-  { label: "Yesterday", dayOffset: -1 },
-  { label: "Today", dayOffset: 0 },
-  { label: "Tomorrow", dayOffset: 1 },
-] as const;
 
 export class ColorClock {
   // Lightweight memo caches so React.memo children skip re-renders when values don't change
   private static cachedHourTicks: { key: string; value: HourTick[] } | null =
     null;
-  private static cachedHueTicks: {
-    key: string;
-    value: HueOffsetTick[];
-  } | null = null;
-  private static cachedWeekSwatches: {
-    key: string;
-    value: WeekDaySwatch[];
-  } | null = null;
 
   /**
    * Computes a DST-safe day of the year index (0 on Jan 1, 1 on Jan 2, etc.).
@@ -194,15 +181,6 @@ export class ColorClock {
   }
 
   /**
-   * Computes the starting hue (noon/midnight hue) for a given day of the year.
-   */
-  static getDailyStartingHue(dayOfYear: number): number {
-    return (
-      (((dayOfYear * CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG) % 360) + 360) % 360
-    );
-  }
-
-  /**
    * Converts HSV values (h in [0,360), s & v in) to standard 0-255 RGB integers.
    */
   static hsvToRgb(h: number, s: number, v: number): RgbColor {
@@ -315,41 +293,6 @@ export class ColorClock {
   }
 
   /**
-   * Computes the daily hue-offset ticks with per-tick perceptual contrast against the HSV color underneath,
-   * returning a stable array reference when unchanged.
-   */
-  static getHueOffsetTicks(
-    dayOffset: number,
-    value: number,
-    saturation: number,
-  ): HueOffsetTick[] {
-    const stepDeg = CLOCK_CONFIG.DAILY_HUE_OFFSET_DEG;
-    const count = Math.floor(360 / stepDeg);
-
-    const ticks = Array.from({ length: count }, (_, i) => {
-      const angle = i * stepDeg;
-      const hueAtTick = (((dayOffset + angle) % 360) + 360) % 360;
-      const luminance = this.getRelativeLuminance(
-        this.hsvToRgb(hueAtTick, saturation, value),
-      );
-
-      return {
-        angle,
-        isBrightUnderneath:
-          luminance > CLOCK_CONFIG.LUMINANCE_CONTRAST_THRESHOLD,
-      };
-    });
-
-    const key = `${stepDeg}:${ticks.map((t) => (t.isBrightUnderneath ? "1" : "0")).join("")}`;
-    if (this.cachedHueTicks?.key === key) {
-      return this.cachedHueTicks.value;
-    }
-
-    this.cachedHueTicks = { key, value: ticks };
-    return ticks;
-  }
-
-  /**
    * Builds the CSS conic-gradient string for the inner HSV hue wheel.
    */
   static getHueWheelGradient(
@@ -400,53 +343,6 @@ export class ColorClock {
   }
 
   /**
-   * Generates the 3-day swatch list (Yesterday, Today, Tomorrow) using the active HSV Value,
-   * returning a stable array reference when the rendered swatch colors haven't changed.
-   */
-  static getWeekSwatches(date: Date, value: number): WeekDaySwatch[] {
-    const swatches = RELATIVE_DAY_SPECS.map(({ label, dayOffset }) => {
-      const dateForDay = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate() + dayOffset,
-        date.getHours(),
-        date.getMinutes(),
-        date.getSeconds(),
-      );
-      const targetDayOfYear = this.getDayOfYear(dateForDay);
-      const startingHue = this.getDailyStartingHue(targetDayOfYear);
-      const saturation = this.getSeasonalSaturation(dateForDay);
-      const rgb = this.hsvToRgb(
-        startingHue,
-        saturation,
-        (value + CLOCK_CONFIG.WEEK_SWATCH_VALUE_PERCENT) / 2.0,
-      );
-
-      return {
-        label,
-        dayOffset,
-        startingHue,
-        saturation,
-        backgroundColor: this.rbgToCss(rgb),
-        isBright:
-          this.getRelativeLuminance(rgb) >
-          CLOCK_CONFIG.LUMINANCE_CONTRAST_THRESHOLD,
-        isToday: dayOffset === 0,
-      };
-    });
-
-    const key = swatches
-      .map((s) => `${s.startingHue}:${s.backgroundColor}:${s.isBright ? 1 : 0}`)
-      .join("|");
-    if (this.cachedWeekSwatches?.key === key) {
-      return this.cachedWeekSwatches.value;
-    }
-
-    this.cachedWeekSwatches = { key, value: swatches };
-    return swatches;
-  }
-
-  /**
 • Computes all derived HSV visual and numeric values for a given Date.
 */
   static getClockState(date: Date) {
@@ -462,8 +358,7 @@ export class ColorClock {
       (secondsSinceMidnight / CLOCK_CONFIG.SECONDS_PER_HALF_DAY) * 360;
 
     // Normalize hue into [0, 360)
-    const dayOffset = this.getDailyStartingHue(dayOfYear);
-    const hue = (((minuteAngle + dayOffset) % 360) + 360) % 360;
+    const hue = (((minuteAngle + CLOCK_CONFIG.STARTING_HUE) % 360) + 360) % 360;
     const saturation = this.getSeasonalSaturation(date);
     const value = this.getValueAtSecond(secondsSinceMidnight);
     const rgb = this.hsvToRgb(hue, saturation, value);
@@ -484,14 +379,16 @@ export class ColorClock {
       hex,
       isBright,
       backgroundColor: hex,
-      hueWheelGradient: this.getHueWheelGradient(dayOffset, value, saturation),
+      hueWheelGradient: this.getHueWheelGradient(
+        CLOCK_CONFIG.STARTING_HUE,
+        value,
+        saturation,
+      ),
+      hourTicks: this.getHourTicks(secondsSinceMidnight, hourAngle),
       brightnessRingGradient: this.getBrightnessRingGradient(
         secondsSinceMidnight,
         hourAngle,
       ),
-      hourTicks: this.getHourTicks(secondsSinceMidnight, hourAngle),
-      hueOffsetTicks: this.getHueOffsetTicks(dayOffset, value, saturation),
-      weekDays: this.getWeekSwatches(date, value),
     };
   }
 }

@@ -10,7 +10,6 @@ import { useWakeLock } from "../hooks/useWakeLock";
 import { useDynamicClockMetadata } from "../hooks/useDynamicClockMetadata";
 import ColorClockDial from "./ColorClockDial";
 import ClockReadout from "./ClockReadout";
-import WeekHueStrip from "./WeekHueStrip";
 import TimeDebugControls from "./TimeDebugControls";
 
 export default function Time() {
@@ -122,7 +121,6 @@ export default function Time() {
           hueWheelGradient={clockState.hueWheelGradient}
           brightnessRingGradient={clockState.brightnessRingGradient}
           hourTicks={clockState.hourTicks}
-          hueOffsetTicks={clockState.hueOffsetTicks}
           hourAngle={clockState.hourAngle}
           minuteAngle={clockState.minuteAngle}
           secondAngle={clockState.secondAngle}
@@ -141,12 +139,6 @@ export default function Time() {
           secondsSinceMidnight={clockState.secondsSinceMidnight}
           isDebugActive={isDebugActive}
           isSimulated={isSimulated}
-        />
-
-        <WeekHueStrip
-          weekDays={clockState.weekDays}
-          isBright={clockState.isBright}
-          onSelectDayOffset={handleShiftDays}
         />
 
         <TimeDebugControls
