@@ -32,10 +32,10 @@ export default function Time() {
   useDynamicClockMetadata(timestamp, activeDate, clockState);
 
   const isSimulated = offsetMs !== 0;
-  const isDebugActive = isDebugOpen || isSimulated;
-  const textColorClass = clockState.isBright
-    ? "text-slate-900"
-    : "text-slate-100";
+  const textColorClass = useMemo(
+    () => (clockState.isBright ? "text-slate-900" : "text-slate-100"),
+    [clockState.isBright],
+  );
 
   const mainStyle = useMemo(
     () => ({ backgroundColor: clockState.backgroundColor }),
@@ -142,7 +142,6 @@ export default function Time() {
           lightness={clockState.lightness}
           hex={clockState.hex}
           rgb={clockState.rgb}
-          isDebugActive={isDebugActive}
           isSimulated={isSimulated}
         />
 

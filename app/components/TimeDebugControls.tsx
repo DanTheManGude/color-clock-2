@@ -24,7 +24,9 @@ const TIME_PRESETS = [
 ] as const;
 
 const SEASON_PRESETS = [
+  { label: "Spring Equinox", month: 2, day: 21 },
   { label: "Summer Solstice", month: 5, day: 21 },
+  { label: "Fall Equinox", month: 8, day: 21 },
   { label: "Winter Solstice", month: 11, day: 21 },
 ] as const;
 
@@ -91,6 +93,11 @@ const DebugDrawer = memo(function DebugDrawer({
     () => onShiftMinutes(10),
     [onShiftMinutes],
   );
+  const handleMinus1Min = useCallback(
+    () => onShiftMinutes(-1),
+    [onShiftMinutes],
+  );
+  const handlePlus1Min = useCallback(() => onShiftMinutes(1), [onShiftMinutes]);
   const handleMinusHour = useCallback(() => onShiftHours(-1), [onShiftHours]);
   const handlePlusHour = useCallback(() => onShiftHours(1), [onShiftHours]);
   const handleMinusDay = useCallback(() => onShiftDays(-1), [onShiftDays]);
@@ -139,16 +146,6 @@ const DebugDrawer = memo(function DebugDrawer({
       {/* Quick Time-of-Day, Season Presets & Hour/Day Stepping */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1.5">
-          {TIME_PRESETS.map((preset) => (
-            <button
-              key={preset.label}
-              type="button"
-              onClick={() => onScrubSeconds(preset.seconds)}
-              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
-            >
-              {preset.label}
-            </button>
-          ))}
           {SEASON_PRESETS.map((season) => (
             <button
               key={season.label}
@@ -159,22 +156,31 @@ const DebugDrawer = memo(function DebugDrawer({
               {season.label}
             </button>
           ))}
-        </div>
 
-        <div className="flex flex-wrap gap-1.5">
+          {TIME_PRESETS.map((preset) => (
+            <button
+              key={preset.label}
+              type="button"
+              onClick={() => onScrubSeconds(preset.seconds)}
+              className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
+            >
+              {preset.label}
+            </button>
+          ))}
+
           <button
             type="button"
-            onClick={handleMinus10Min}
+            onClick={handleMinusDay}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
           >
-            -10 Min
+            -1 Day
           </button>
           <button
             type="button"
-            onClick={handlePlus10Min}
+            onClick={handlePlusDay}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
           >
-            +10 Min
+            +1 Day
           </button>
           <button
             type="button"
@@ -192,17 +198,31 @@ const DebugDrawer = memo(function DebugDrawer({
           </button>
           <button
             type="button"
-            onClick={handleMinusDay}
+            onClick={handleMinus10Min}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
           >
-            -1 Day
+            -10 Min
           </button>
           <button
             type="button"
-            onClick={handlePlusDay}
+            onClick={handlePlus10Min}
             className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
           >
-            +1 Day
+            +10 Min
+          </button>
+          <button
+            type="button"
+            onClick={handleMinus1Min}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
+          >
+            -1 Min
+          </button>
+          <button
+            type="button"
+            onClick={handlePlus1Min}
+            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${buttonBgClass}`}
+          >
+            +1 Min
           </button>
         </div>
       </div>

@@ -8,7 +8,6 @@ interface ClockReadoutProps {
   lightness: number;
   hex: string;
   rgb: RgbColor;
-  isDebugActive: boolean;
   isSimulated: boolean;
 }
 
@@ -19,7 +18,6 @@ function ClockReadout({
   lightness,
   hex,
   rgb,
-  isDebugActive,
   isSimulated,
 }: ClockReadoutProps) {
   const formattedDate = useMemo(
