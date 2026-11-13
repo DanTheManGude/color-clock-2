@@ -10,7 +10,6 @@ export const CLOCK_CONFIG = {
   MIN_LIGHTNESS_PERCENT: 15,
   MAX_LIGHTNESS_PERCENT: 60,
   LUMINANCE_CONTRAST_THRESHOLD: 0.179, // WCAG
-  BEZEL_LUMINANCE_CONTRAST_THRESHOLD: 0.28,
   SECONDS_PER_MINUTE: 60,
   SECONDS_PER_HOUR: 3600,
   SECONDS_PER_HALF_DAY: 43200,
@@ -45,6 +44,8 @@ export interface HueOffsetTick {
   isBrightUnderneath: boolean;
 }
 
+const normalize360 = (value: number) => ((value % 360) + 360) % 360;
+
 // Precompute sRGB -> linear channel values (0..255) once at module load
 const SRGB_TO_LINEAR_LUT = Float64Array.from({ length: 256 }, (_, channel) => {
   const srgb = channel / 255;
@@ -53,7 +54,7 @@ const SRGB_TO_LINEAR_LUT = Float64Array.from({ length: 256 }, (_, channel) => {
 
 const HUE_WHEEL_STOPS = Array.from(
   { length: Math.floor(360 / CLOCK_CONFIG.HUE_OFFSET_DEG) + 1 },
-  (_, i) => (i * CLOCK_CONFIG.HUE_OFFSET_DEG) % 360,
+  (_, i) => normalize360(i * CLOCK_CONFIG.HUE_OFFSET_DEG),
 );
 
 export class ColorClock {
@@ -182,7 +183,7 @@ export class ColorClock {
    * Converts HSL values (h in [0,360), s & l in) to standard 0-255 RGB integers.
    */
   static hslToRgb(h: number, s: number, l: number): RgbColor {
-    const normalizedH = h % 360;
+    const normalizedH = normalize360(h);
     const sat = Math.max(0, Math.min(100, s)) / 100;
     const light = Math.max(0, Math.min(100, l)) / 100;
 
@@ -257,10 +258,10 @@ export class ColorClock {
     secondsSinceMidnight: number,
     hourAngle: number,
   ): HourTick[] {
-    const normalizedHourAngle = hourAngle % 360;
+    const normalizedHourAngle = normalize360(hourAngle);
     const ticks = Array.from({ length: CLOCK_CONFIG.HOURS_ON_DIAL }, (_, i) => {
       const angle = i * CLOCK_CONFIG.DEGREES_PER_HOUR;
-      const rawDelta = (angle - normalizedHourAngle) % 360;
+      const rawDelta = normalize360(angle - normalizedHourAngle);
       const signedDeltaDeg = rawDelta >= 180 ? rawDelta - 360 : rawDelta;
 
       const offsetSeconds =
@@ -277,7 +278,7 @@ export class ColorClock {
         angle,
         isCardinal: angle % 90 === 0,
         isBrightUnderneath:
-          luminance > CLOCK_CONFIG.BEZEL_LUMINANCE_CONTRAST_THRESHOLD,
+          luminance > CLOCK_CONFIG.LUMINANCE_CONTRAST_THRESHOLD,
       };
     });
 
@@ -294,7 +295,7 @@ export class ColorClock {
    * Builds the CSS conic-gradient string for the inner HSL hue wheel.
    */
   static getHueWheelGradient(lightness: number, saturation: number): string {
-    const wheelStartAngle = (360 - CLOCK_CONFIG.STARTING_HUE) % 360;
+    const wheelStartAngle = normalize360(360 - CLOCK_CONFIG.STARTING_HUE);
     const stops = HUE_WHEEL_STOPS.map((deg) =>
       this.hslToCssRgb(deg, saturation, lightness),
     ).join(", ");
@@ -340,8 +341,8 @@ export class ColorClock {
       `${seamColor} 360deg`,
     ].join(", ");
 
-    const normalizedHourAngle = hourAngle % 360;
-    const ringStartAngle = (normalizedHourAngle + 180) % 360;
+    const normalizedHourAngle = normalize360(hourAngle);
+    const ringStartAngle = normalize360(normalizedHourAngle + 180);
     return `conic-gradient(from ${ringStartAngle.toFixed(2)}deg, ${allStops})`;
   }
 
@@ -361,7 +362,7 @@ export class ColorClock {
       (secondsSinceMidnight / CLOCK_CONFIG.SECONDS_PER_HALF_DAY) * 360;
 
     // Normalize hue into [0, 360)
-    const hue = (minuteAngle + CLOCK_CONFIG.STARTING_HUE) % 360;
+    const hue = normalize360(minuteAngle + CLOCK_CONFIG.STARTING_HUE);
     const saturation = this.getSeasonalSaturation(date);
     const lightness = this.getLightnessAtSecond(secondsSinceMidnight);
     const rgb = this.hslToRgb(hue, saturation, lightness);
