@@ -142,7 +142,6 @@ export default function Time() {
           value={clockState.value}
           hex={clockState.hex}
           rgb={clockState.rgb}
-          secondsSinceMidnight={clockState.secondsSinceMidnight}
           isDebugActive={isDebugActive}
           isSimulated={isSimulated}
         />

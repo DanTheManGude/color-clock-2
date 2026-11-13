@@ -8,7 +8,6 @@ interface ClockReadoutProps {
   value: number;
   hex: string;
   rgb: RgbColor;
-  secondsSinceMidnight: number;
   isDebugActive: boolean;
   isSimulated: boolean;
 }
@@ -20,7 +19,6 @@ function ClockReadout({
   value,
   hex,
   rgb,
-  secondsSinceMidnight,
   isDebugActive,
   isSimulated,
 }: ClockReadoutProps) {
