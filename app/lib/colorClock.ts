@@ -4,12 +4,11 @@ export const CLOCK_CONFIG = {
   HUE_OFFSET_DEG: 30,
   HOURS_ON_DIAL: 12,
   DEGREES_PER_HOUR: 360 / 12,
-  MIN_SATURATION_PERCENT: 27,
-  MAX_SATURATION_PERCENT: 87,
+  MIN_SATURATION_PERCENT: 30,
+  MAX_SATURATION_PERCENT: 65,
   SUMMER_SOLSTICE_DAY_OF_YEAR: 171, // June 21 (0-indexed)
-  MIN_LIGHTNESS_PERCENT: 20,
-  MAX_LIGHTNESS_PERCENT: 80,
-  WEEK_SWATCH_LIGHTNESS_PERCENT: 65,
+  MIN_LIGHTNESS_PERCENT: 15,
+  MAX_LIGHTNESS_PERCENT: 60,
   LUMINANCE_CONTRAST_THRESHOLD: 0.179, // WCAG
   BEZEL_LUMINANCE_CONTRAST_THRESHOLD: 0.28,
   SECONDS_PER_MINUTE: 60,
@@ -17,7 +16,6 @@ export const CLOCK_CONFIG = {
   SECONDS_PER_HALF_DAY: 43200,
   SECONDS_PER_DAY: 86400,
   MS_PER_DAY: 86400000,
-  DAY_LABELS: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const,
 };
 
 export interface RgbColor {
@@ -332,6 +330,7 @@ export class ColorClock {
       const stopLightness = this.getLightnessAtSecond(
         secondsSinceMidnight + offsetHours * CLOCK_CONFIG.SECONDS_PER_HOUR,
       );
+
       return `${this.hslToCssRgb(0, 0, stopLightness)} ${angleDeg.toFixed(2)}deg`;
     });
 
