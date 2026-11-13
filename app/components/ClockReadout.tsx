@@ -62,12 +62,12 @@ function ClockReadout({
         <div className={"text-5xl font-bold mb-3"}>{formattedTime}</div>
       </div>
       {/* Primary Hue / Seasonal Saturation / Lightness Summary */}
-      <div className="text-base sm:text-xl opacity-90 mb-0.5 sm:mb-1">
+      <div className="text-base sm:text-lg opacity-90 mb-0.5 sm:mb-1">
         {hslSummary}
       </div>
 
       {/* Live RGB Readout */}
-      <div className={`text-base opacity-85 mb-8`}>{rgbHexSummary}</div>
+      <div className={`text-base opacity-85 mb-3`}>{rgbHexSummary}</div>
     </>
   );
 }
