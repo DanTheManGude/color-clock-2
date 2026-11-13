@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { CLOCK_CONFIG, HourTick, HueOffsetTick } from "../lib/colorClock";
+import { CLOCK_CONFIG, HourTick } from "../lib/colorClock";
 
 interface ColorClockDialProps {
   hueWheelGradient: string;
@@ -9,7 +9,7 @@ interface ColorClockDialProps {
   minuteAngle: number;
   secondAngle: number;
   hue: number;
-  value: number;
+  lightness: number;
   isBright: boolean;
 }
 
@@ -60,7 +60,7 @@ function ColorClockDial({
   minuteAngle,
   secondAngle,
   hue,
-  value,
+  lightness,
   isBright,
 }: ColorClockDialProps) {
   const handColorClass = useMemo(
@@ -113,8 +113,8 @@ function ColorClockDial({
 
   const ariaLabel = useMemo(
     () =>
-      `Color and 12-hour value clock showing ${Math.round(hue)} degrees hue and ${Math.round(value)}% value`,
-    [hue, value],
+      `Color and 12-hour lightness clock showing ${Math.round(hue)} degrees hue and ${Math.round(lightness)}% lightness`,
+    [hue, lightness],
   );
 
   return (
@@ -125,7 +125,7 @@ function ColorClockDial({
     >
       <HourTickLayer hourTicks={hourTicks} />
 
-      {/* Inner HSV Hue Wheel */}
+      {/* Inner HSL Hue Wheel */}
       <div
         style={innerWheelStyle}
         className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center"

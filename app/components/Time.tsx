@@ -131,7 +131,7 @@ export default function Time() {
           minuteAngle={clockState.minuteAngle}
           secondAngle={clockState.secondAngle}
           hue={clockState.hue}
-          value={clockState.value}
+          lightness={clockState.lightness}
           isBright={clockState.isBright}
         />
 
@@ -139,7 +139,7 @@ export default function Time() {
           activeDate={activeDate}
           hue={clockState.hue}
           saturation={clockState.saturation}
-          value={clockState.value}
+          lightness={clockState.lightness}
           hex={clockState.hex}
           rgb={clockState.rgb}
           isDebugActive={isDebugActive}

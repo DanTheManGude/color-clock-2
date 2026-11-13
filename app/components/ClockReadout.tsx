@@ -5,7 +5,7 @@ interface ClockReadoutProps {
   activeDate: Date;
   hue: number;
   saturation: number;
-  value: number;
+  lightness: number;
   hex: string;
   rgb: RgbColor;
   isDebugActive: boolean;
@@ -16,7 +16,7 @@ function ClockReadout({
   activeDate,
   hue,
   saturation,
-  value,
+  lightness,
   hex,
   rgb,
   isDebugActive,
@@ -37,10 +37,10 @@ function ClockReadout({
     [activeDate],
   );
 
-  const hsvSummary = useMemo(
+  const hslSummary = useMemo(
     () =>
-      `Hue ${hue.toFixed(0)}° • Sat ${saturation.toFixed(0)}% • Val ${value.toFixed(0)}%`,
-    [hue, saturation, value],
+      `Hue ${hue.toFixed(1)}° • Sat ${saturation.toFixed(1)}% • Lit ${lightness.toFixed(1)}%`,
+    [hue, saturation, lightness],
   );
 
   const rgbHexSummary = useMemo(
@@ -61,8 +61,10 @@ function ClockReadout({
       </div>
       <div className="text-5xl font-bold mb-3">{formattedTime}</div>
 
-      {/* Primary Hue / Seasonal Saturation / Value Summary */}
-      <div className="text-xl opacity-90 mb-1">{hsvSummary}</div>
+      {/* Primary Hue / Seasonal Saturation / Lightness Summary */}
+      <div className="text-base sm:text-xl opacity-90 mb-0.5 sm:mb-1">
+        {hslSummary}
+      </div>
 
       {/* Live RGB Readout */}
       <div

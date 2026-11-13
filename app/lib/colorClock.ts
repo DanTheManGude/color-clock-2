@@ -7,9 +7,9 @@ export const CLOCK_CONFIG = {
   MIN_SATURATION_PERCENT: 27,
   MAX_SATURATION_PERCENT: 87,
   SUMMER_SOLSTICE_DAY_OF_YEAR: 171, // June 21 (0-indexed)
-  MIN_VALUE_PERCENT: 20,
-  MAX_VALUE_PERCENT: 80,
-  WEEK_SWATCH_VALUE_PERCENT: 65,
+  MIN_LIGHTNESS_PERCENT: 20,
+  MAX_LIGHTNESS_PERCENT: 80,
+  WEEK_SWATCH_LIGHTNESS_PERCENT: 65,
   LUMINANCE_CONTRAST_THRESHOLD: 0.179, // WCAG
   BEZEL_LUMINANCE_CONTRAST_THRESHOLD: 0.28,
   SECONDS_PER_MINUTE: 60,
@@ -84,7 +84,7 @@ export class ColorClock {
   }
 
   /**
-   * Computes seasonal saturation (35% on Winter Solstice -> 95% on Summer Solstice).
+   * Computes seasonal saturation (27% on Winter Solstice -> 87% on Summer Solstice).
    */
   static getSeasonalSaturation(date: Date): number {
     const {
@@ -158,39 +158,39 @@ export class ColorClock {
   }
 
   /**
-   * Computes HSV Value (20% at midnight -> 80% at noon) for any second of the day.
+   * Computes HSL Lightness (20% at midnight -> 80% at noon) for any second of the day.
    */
-  static getValueAtSecond(seconds: number): number {
+  static getLightnessAtSecond(seconds: number): number {
     const {
       SECONDS_PER_DAY,
       SECONDS_PER_HALF_DAY,
-      MIN_VALUE_PERCENT,
-      MAX_VALUE_PERCENT,
+      MIN_LIGHTNESS_PERCENT,
+      MAX_LIGHTNESS_PERCENT,
     } = CLOCK_CONFIG;
 
     const normalized =
       ((seconds % SECONDS_PER_DAY) + SECONDS_PER_DAY) % SECONDS_PER_DAY;
     const distanceFromMidnight =
       SECONDS_PER_HALF_DAY - Math.abs(SECONDS_PER_HALF_DAY - normalized);
-    const valueRange = MAX_VALUE_PERCENT - MIN_VALUE_PERCENT;
+    const lightnessRange = MAX_LIGHTNESS_PERCENT - MIN_LIGHTNESS_PERCENT;
 
     return (
-      MIN_VALUE_PERCENT +
-      (distanceFromMidnight / SECONDS_PER_HALF_DAY) * valueRange
+      MIN_LIGHTNESS_PERCENT +
+      (distanceFromMidnight / SECONDS_PER_HALF_DAY) * lightnessRange
     );
   }
 
   /**
-   * Converts HSV values (h in [0,360), s & v in) to standard 0-255 RGB integers.
+   * Converts HSL values (h in [0,360), s & l in) to standard 0-255 RGB integers.
    */
-  static hsvToRgb(h: number, s: number, v: number): RgbColor {
-    const normalizedH = ((h % 360) + 360) % 360;
+  static hslToRgb(h: number, s: number, l: number): RgbColor {
+    const normalizedH = h % 360;
     const sat = Math.max(0, Math.min(100, s)) / 100;
-    const val = Math.max(0, Math.min(100, v)) / 100;
+    const light = Math.max(0, Math.min(100, l)) / 100;
 
-    const c = val * sat;
+    const c = (1 - Math.abs(2 * light - 1)) * sat;
     const x = c * (1 - Math.abs(((normalizedH / 60) % 2) - 1));
-    const m = val - c;
+    const m = light - c / 2;
 
     let r1 = 0;
     let g1 = 0;
@@ -226,17 +226,17 @@ export class ColorClock {
   }
 
   /**
-   * Converts HSV directly to a CSS rgb(r, g, b) string.
+   * Converts HSL directly to a CSS rgb(r, g, b) string.
    */
-  static hsvToCssRgb(h: number, s: number, v: number): string {
-    const rgb = this.hsvToRgb(h, s, v);
-    return this.rbgToCss(rgb);
+  static hslToCssRgb(h: number, s: number, l: number): string {
+    const rgb = this.hslToRgb(h, s, l);
+    return this.rgbToCss(rgb);
   }
 
   /**
-   * Converts RGB Color directly to a CSS rgb(r, g, b) string.
+   * Converts an RgbColor directly to a CSS rgb(r, g, b) string.
    */
-  static rbgToCss({ r, g, b }: RgbColor): string {
+  static rgbToCss({ r, g, b }: RgbColor): string {
     return `rgb(${r}, ${g}, ${b})`;
   }
 
@@ -253,26 +253,26 @@ export class ColorClock {
 
   /**
    * Computes the 12 hour tick marks with per-tick contrast based on the grayscale
-   * HSV Value directly beneath each tick, returning a stable array reference when unchanged.
+   * HSL Lightness directly beneath each tick, returning a stable array reference when unchanged.
    */
   static getHourTicks(
     secondsSinceMidnight: number,
     hourAngle: number,
   ): HourTick[] {
-    const normalizedHourAngle = ((hourAngle % 360) + 360) % 360;
+    const normalizedHourAngle = hourAngle % 360;
     const ticks = Array.from({ length: CLOCK_CONFIG.HOURS_ON_DIAL }, (_, i) => {
       const angle = i * CLOCK_CONFIG.DEGREES_PER_HOUR;
-      const rawDelta = (((angle - normalizedHourAngle) % 360) + 360) % 360;
+      const rawDelta = (angle - normalizedHourAngle) % 360;
       const signedDeltaDeg = rawDelta >= 180 ? rawDelta - 360 : rawDelta;
 
       const offsetSeconds =
         (signedDeltaDeg / CLOCK_CONFIG.DEGREES_PER_HOUR) *
         CLOCK_CONFIG.SECONDS_PER_HOUR;
-      const valueAtTick = this.getValueAtSecond(
+      const lightnessAtTick = this.getLightnessAtSecond(
         secondsSinceMidnight + offsetSeconds,
       );
       const luminance = this.getRelativeLuminance(
-        this.hsvToRgb(0, 0, valueAtTick),
+        this.hslToRgb(0, 0, lightnessAtTick),
       );
 
       return {
@@ -293,21 +293,18 @@ export class ColorClock {
   }
 
   /**
-   * Builds the CSS conic-gradient string for the inner HSV hue wheel.
+   * Builds the CSS conic-gradient string for the inner HSL hue wheel.
    */
-  static getHueWheelGradient(
-    dayOffset: number,
-    value: number,
-    saturation: number,
-  ): string {
-    const wheelStartAngle = (360 - dayOffset) % 360;
+  static getHueWheelGradient(lightness: number, saturation: number): string {
+    const wheelStartAngle = (360 - CLOCK_CONFIG.STARTING_HUE) % 360;
     const stops = HUE_WHEEL_STOPS.map((deg) =>
-      this.hsvToCssRgb(deg, saturation, value),
+      this.hslToCssRgb(deg, saturation, lightness),
     ).join(", ");
     return `conic-gradient(from ${wheelStartAngle}deg, ${stops})`;
   }
+
   /**
-   * Builds the CSS conic-gradient string for the 12-hour rolling grayscale HSV Value ring,
+   * Builds the CSS conic-gradient string for the 12-hour rolling grayscale HSL Lightness ring,
    * feathering the ±6h seam opposite the hour hand so -6h and +6h blend smoothly.
    */
   static getBrightnessRingGradient(
@@ -316,35 +313,42 @@ export class ColorClock {
   ): string {
     const steps = 48;
     const sixHoursSeconds = 6 * CLOCK_CONFIG.SECONDS_PER_HOUR;
-    const minus6Value = this.getValueAtSecond(
+    const minus6Lightness = this.getLightnessAtSecond(
       secondsSinceMidnight - sixHoursSeconds,
     );
-    const plus6Value = this.getValueAtSecond(
+    const plus6Lightness = this.getLightnessAtSecond(
       secondsSinceMidnight + sixHoursSeconds,
     );
-    const seamColor = this.hsvToCssRgb(0, 0, (minus6Value + plus6Value) / 2);
+    const seamColor = this.hslToCssRgb(
+      0,
+      0,
+      (minus6Lightness + plus6Lightness) / 2,
+    );
+
     const interiorStops = Array.from({ length: steps - 1 }, (_, idx) => {
       const i = idx + 1;
       const offsetHours = -6 + (i / steps) * 12;
       const angleDeg = (i / steps) * 360;
-      const stopValue = this.getValueAtSecond(
+      const stopLightness = this.getLightnessAtSecond(
         secondsSinceMidnight + offsetHours * CLOCK_CONFIG.SECONDS_PER_HOUR,
       );
-      return `${this.hsvToCssRgb(0, 0, stopValue)} ${angleDeg.toFixed(2)}deg`;
+      return `${this.hslToCssRgb(0, 0, stopLightness)} ${angleDeg.toFixed(2)}deg`;
     });
+
     const allStops = [
       `${seamColor} 0deg`,
       ...interiorStops,
       `${seamColor} 360deg`,
     ].join(", ");
-    const normalizedHourAngle = ((hourAngle % 360) + 360) % 360;
+
+    const normalizedHourAngle = hourAngle % 360;
     const ringStartAngle = (normalizedHourAngle + 180) % 360;
     return `conic-gradient(from ${ringStartAngle.toFixed(2)}deg, ${allStops})`;
   }
 
   /**
-• Computes all derived HSV visual and numeric values for a given Date.
-*/
+   * Computes all derived HSL visual and numeric values for a given Date.
+   */
   static getClockState(date: Date) {
     const dayOfYear = this.getDayOfYear(date);
     const secondsSinceMidnight = this.getSecondsSinceMidnight(date);
@@ -358,14 +362,15 @@ export class ColorClock {
       (secondsSinceMidnight / CLOCK_CONFIG.SECONDS_PER_HALF_DAY) * 360;
 
     // Normalize hue into [0, 360)
-    const hue = (((minuteAngle + CLOCK_CONFIG.STARTING_HUE) % 360) + 360) % 360;
+    const hue = (minuteAngle + CLOCK_CONFIG.STARTING_HUE) % 360;
     const saturation = this.getSeasonalSaturation(date);
-    const value = this.getValueAtSecond(secondsSinceMidnight);
-    const rgb = this.hsvToRgb(hue, saturation, value);
+    const lightness = this.getLightnessAtSecond(secondsSinceMidnight);
+    const rgb = this.hslToRgb(hue, saturation, lightness);
     const hex = this.rgbToHex(rgb);
     const isBright =
       this.getRelativeLuminance(rgb) >
       CLOCK_CONFIG.LUMINANCE_CONTRAST_THRESHOLD;
+
     return {
       dayOfYear,
       secondsSinceMidnight,
@@ -374,21 +379,17 @@ export class ColorClock {
       hourAngle,
       hue,
       saturation,
-      value,
+      lightness,
       rgb,
       hex,
       isBright,
       backgroundColor: hex,
-      hueWheelGradient: this.getHueWheelGradient(
-        CLOCK_CONFIG.STARTING_HUE,
-        value,
-        saturation,
-      ),
-      hourTicks: this.getHourTicks(secondsSinceMidnight, hourAngle),
+      hueWheelGradient: this.getHueWheelGradient(lightness, saturation),
       brightnessRingGradient: this.getBrightnessRingGradient(
         secondsSinceMidnight,
         hourAngle,
       ),
+      hourTicks: this.getHourTicks(secondsSinceMidnight, hourAngle),
     };
   }
 }
